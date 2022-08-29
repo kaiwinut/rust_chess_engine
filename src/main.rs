@@ -1,10 +1,7 @@
 mod core;
-use rust_chess_engine::core::masks::FILE_A;
-
-use crate::core::BitBoard;
-use crate::core::masks;
+use crate::core::bitboard;
 
 fn main() {
-    let bitboard = BitBoard(masks::RANK_5);
+    let bitboard = bitboard::NOT_FILE_A;
     println!("{}", bitboard);
 }

@@ -3,38 +3,46 @@ use super::utils::*;
 use core::fmt;
 use std::ops::*;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct BitBoard(pub u64);
 
 impl BitBoard {
+    #[allow(dead_code)]
     pub fn new(square: Square) -> Self {
         BitBoard(1u64 << square.to_usize())
     }
 
+    #[allow(dead_code)]
     pub fn to_u64(self) -> u64 {
         self.0
     }
 
+    #[allow(dead_code)]
     pub fn to_usize(self) -> usize {
         self.0 as usize
     }
 
+    #[allow(dead_code)]
     pub fn is_set(&self, square: Square) -> bool {
         (self.0 >> square.to_usize()) & 1 != 0
     }
 
+    #[allow(dead_code)]
     pub fn pop_count(&self) -> usize {
         self.0.count_ones() as usize
     }
 
+    #[allow(dead_code)]
     pub fn pop_lsb(&self) -> BitBoard {
-        BitBoard(self.0 & self.0 - 1)
+        BitBoard(self.0 & (self.0 - 1))
     }
 
+    #[allow(dead_code)]
     pub fn lsb(&self) -> BitBoard {
         BitBoard(self.0 & 0u64.wrapping_sub(self.0))
     }
 
+    #[allow(dead_code)]
     pub fn bit_scan(&self) -> u8 {
         self.0.trailing_zeros() as u8
     }

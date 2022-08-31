@@ -1,31 +1,32 @@
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Square(pub u8);
 
 impl Square {
-    pub fn new(s: u8) -> Self {
-        Square(s)
-    }
-
+    #[allow(dead_code)]
     pub fn from(file: i8, rank: i8) -> Option<Self> {
-        if rank >= 0 && rank <= 7 && file >= 0 && file <= 7 {
+        if (0..=7).contains(&rank) && (0..=7).contains(&file) {
             Some(Square((rank * 8 + file) as u8))
         } else {
             None
-        }        
+        }
     }
 
+    #[allow(dead_code)]
     pub fn file(&self) -> u8 {
         self.0 % 8
     }
 
+    #[allow(dead_code)]
     pub fn rank(&self) -> u8 {
         self.0 / 8
     }
 
+    #[allow(dead_code)]
     pub fn to_u8(self) -> u8 {
         self.0
     }
 
+    #[allow(dead_code)]
     pub fn to_usize(self) -> usize {
         self.0 as usize
     }
@@ -160,7 +161,6 @@ pub const H7: Square = Square(55);
 #[allow(dead_code)]
 pub const H8: Square = Square(63);
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -170,7 +170,7 @@ mod tests {
         let file1 = 0;
         let file2 = -1;
         let rank1 = 5;
-        
+
         assert_eq!(Square::from(file1, rank1), Some(A6));
         assert_eq!(Square::from(file2, rank1), None);
     }

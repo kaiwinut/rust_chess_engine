@@ -1,7 +1,7 @@
-use arr_macro::arr;
 use crate::core::masks;
-use crate::core::square::{self, Square};
 use crate::core::BitBoard;
+use crate::core::Square;
+use arr_macro::arr;
 
 pub struct MagicAttackTable {
     pub relevant_occupancy_mask: BitBoard,
@@ -35,6 +35,10 @@ pub fn get_bishop_attacks(sq: Square, occ: BitBoard) -> BitBoard {
         let hash = ((occ & table.relevant_occupancy_mask) * table.magic) >> (64 - table.shift);
         table.attacks[hash.to_usize()]
     }
+}
+
+pub fn get_queen_attacks(sq: Square, occ: BitBoard) -> BitBoard {
+    get_rook_attacks(sq, occ) | get_bishop_attacks(sq, occ)
 }
 
 pub fn init_magic() {
@@ -154,10 +158,9 @@ fn generate_slider_attacks_in_direction(
     occ: BitBoard,
 ) -> BitBoard {
     let mut result = BitBoard(masks::EMPTY);
-    let mut new_sq = sq.clone();
+    let mut new_sq = sq;
 
-    loop {
-        if let Some(current_square) = Square::from(
+    while let Some(current_square) = Square::from(
             new_sq.file() as i8 + direction.0,
             new_sq.rank() as i8 + direction.1,
         ) {
@@ -166,14 +169,12 @@ fn generate_slider_attacks_in_direction(
                 break;
             }
             new_sq = current_square;
-        } else {
-            break;
         }
-    }
 
     result
 }
 
+#[allow(dead_code)]
 pub fn find_magics() {
     println!("[");
     for index in 0..64 {
@@ -189,6 +190,7 @@ pub fn find_magics() {
     println!("]");
 }
 
+#[allow(dead_code)]
 fn find_magic_for_bishop_at_sqaure(sq: Square) -> BitBoard {
     let shift = BISHOP_SHIFTS[sq.to_usize()];
     let count = (1 << shift) as usize;
@@ -207,6 +209,7 @@ fn find_magic_for_bishop_at_sqaure(sq: Square) -> BitBoard {
     find_magic_for_square(&relevant_occupancies, &attacks, count, shift)
 }
 
+#[allow(dead_code)]
 fn find_magic_for_rook_at_sqaure(sq: Square) -> BitBoard {
     let shift = ROOK_SHIFTS[sq.to_usize()];
     let count = (1 << shift) as usize;
@@ -225,9 +228,10 @@ fn find_magic_for_rook_at_sqaure(sq: Square) -> BitBoard {
     find_magic_for_square(&relevant_occupancies, &attacks, count, shift)
 }
 
+#[allow(dead_code)]
 fn find_magic_for_square(
-    relevant_occupancies: &Vec<BitBoard>,
-    attacks: &Vec<BitBoard>,
+    relevant_occupancies: &[BitBoard],
+    attacks: &[BitBoard],
     count: usize,
     shift: u8,
 ) -> BitBoard {
@@ -438,6 +442,7 @@ const BISHOP_MAGIC_NUMBERS: [u64; 64] = [
 
 #[cfg(test)]
 mod tests {
+    use super::super::super::square;
     use super::*;
 
     #[test]
@@ -458,6 +463,37 @@ mod tests {
         assert_eq!(
             generate_slider_attacks_in_direction(sq2, direction2, occ2),
             BitBoard::new(square::E5) + BitBoard::new(square::F6) + BitBoard::new(square::G7)
+        );
+    }
+
+    #[test]
+    fn test_get_slider_attacks() {
+        init_magic();
+
+        assert_eq!(
+            get_rook_attacks(square::D4, BitBoard(0x0008001404002200)),
+            BitBoard(0x00080808f4080808)
+        );
+        assert_eq!(
+            get_bishop_attacks(square::D4, BitBoard(0x0008001404002200)),
+            BitBoard(0x0000001400142200)
+        );
+        assert_eq!(
+            get_queen_attacks(square::D4, BitBoard(0x0008001404002200)),
+            BitBoard(0x0008081cf41c2a08)
+        );
+
+        assert_eq!(
+            get_rook_attacks(square::A2, BitBoard(0x0008001504002200)),
+            BitBoard(0x0000000101010201)
+        );
+        assert_eq!(
+            get_bishop_attacks(square::A2, BitBoard(0x0008001504002200)),
+            BitBoard(0x0000000004020002)
+        );
+        assert_eq!(
+            get_queen_attacks(square::A2, BitBoard(0x0008001504002200)),
+            BitBoard(0x0000000105030203)
         );
     }
 }

@@ -1,6 +1,8 @@
 pub mod bitboard;
-mod square;
 pub mod masks;
+pub mod movegen;
+mod square;
+mod utils;
 
 pub use bitboard::*;
 pub use square::Square;

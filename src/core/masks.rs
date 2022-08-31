@@ -1,3 +1,5 @@
+pub const EMPTY : u64 = 0u64;
+
 pub const FILE_A: u64 = 0x0101_0101_0101_0101;
 pub const FILE_B: u64 = FILE_A << 1;
 pub const FILE_C: u64 = FILE_A << 2;

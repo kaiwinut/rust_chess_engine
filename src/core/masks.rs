@@ -17,3 +17,5 @@ pub const RANK_5: u64 = RANK_1 << 8 * 4;
 pub const RANK_6: u64 = RANK_1 << 8 * 5;
 pub const RANK_7: u64 = RANK_1 << 8 * 6;
 pub const RANK_8: u64 = RANK_1 << 8 * 7;
+
+pub const EDGES : u64 = FILE_A | FILE_H | RANK_1 | RANK_8;

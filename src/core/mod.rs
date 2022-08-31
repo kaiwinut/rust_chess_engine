@@ -1,7 +1,7 @@
 pub mod bitboard;
 pub mod masks;
 pub mod movegen;
-mod square;
+pub mod square;
 mod utils;
 
 pub use bitboard::*;

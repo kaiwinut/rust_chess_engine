@@ -1,29 +1,33 @@
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Square(pub usize);
+pub struct Square(pub u8);
 
 impl Square {
-    pub fn new(s: usize) -> Self {
+    pub fn new(s: u8) -> Self {
         Square(s)
     }
 
-    pub fn from(file: i32, rank: i32) -> Option<Self> {
+    pub fn from(file: i8, rank: i8) -> Option<Self> {
         if rank >= 0 && rank <= 7 && file >= 0 && file <= 7 {
-            Some(Square((rank * 8 + file) as usize))
+            Some(Square((rank * 8 + file) as u8))
         } else {
             None
         }        
     }
 
-    pub fn file(&self) -> usize {
+    pub fn file(&self) -> u8 {
         self.0 % 8
     }
 
-    pub fn rank(&self) -> usize {
+    pub fn rank(&self) -> u8 {
         self.0 / 8
     }
 
-    pub fn to_usize(self) -> usize {
+    pub fn to_u8(self) -> u8 {
         self.0
+    }
+
+    pub fn to_usize(self) -> usize {
+        self.0 as usize
     }
 }
 

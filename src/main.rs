@@ -1,12 +1,24 @@
 mod core;
-use crate::core::movegen::slider;
+
+use crate::core::masks;
+use crate::core::movegen::slider::*;
+use crate::core::square;
 use crate::core::BitBoard;
 
+use chrono::*;
+
 fn main() {
-    let bb = BitBoard(0x1010106e101000);
-    println!("{}", bb);
-    for i in 1..10 {
-        let occ = slider::generate_occupancy(bb, i as u64);
-        println!("{}", occ);
-    }
+    let start = Utc::now();
+    fastrand::seed(9000);
+    init_magic();
+
+    let interval = Utc::now() - start;
+    println!("\nTime: {} ms\n", interval.num_milliseconds());
+
+    let sq = square::D4;
+    let occ = BitBoard::new(square::B2)
+        | BitBoard::new(square::E5)
+        | BitBoard::new(square::C5)
+        | BitBoard::new(square::F2);
+    println!("{}", get_bishop_attacks(sq, occ));
 }

@@ -28,8 +28,8 @@ impl BitBoard {
     }
 
     #[allow(dead_code)]
-    pub fn pop_count(&self) -> usize {
-        self.0.count_ones() as usize
+    pub fn pop_count(&self) -> u8 {
+        self.0.count_ones() as u8
     }
 
     #[allow(dead_code)]
@@ -39,7 +39,7 @@ impl BitBoard {
 
     #[allow(dead_code)]
     pub fn lsb(&self) -> BitBoard {
-        BitBoard(self.0 & 0u64.wrapping_sub(self.0))
+        BitBoard(self.0 & self.0.wrapping_neg())
     }
 
     #[allow(dead_code)]
@@ -175,7 +175,7 @@ impl fmt::Display for BitBoard {
                         ". "
                     }
                 },
-                self.0
+                Some(self.0)
             )
         )
     }

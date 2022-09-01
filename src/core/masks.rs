@@ -1,5 +1,5 @@
 #[allow(dead_code)]
-pub const EMPTY : u64 = 0u64;
+pub const EMPTY: u64 = 0u64;
 
 #[allow(dead_code)]
 pub const FILE_A: u64 = 0x0101_0101_0101_0101;
@@ -36,4 +36,4 @@ pub const RANK_7: u64 = RANK_1 << (8 * 6);
 pub const RANK_8: u64 = RANK_1 << (8 * 7);
 
 #[allow(dead_code)]
-pub const EDGES : u64 = FILE_A | FILE_H | RANK_1 | RANK_8;
+pub const EDGES: u64 = FILE_A | FILE_H | RANK_1 | RANK_8;

@@ -161,15 +161,15 @@ fn generate_slider_attacks_in_direction(
     let mut new_sq = sq;
 
     while let Some(current_square) = Square::from(
-            new_sq.file() as i8 + direction.0,
-            new_sq.rank() as i8 + direction.1,
-        ) {
-            result |= BitBoard::new(current_square);
-            if result & occ != BitBoard(masks::EMPTY) {
-                break;
-            }
-            new_sq = current_square;
+        new_sq.file() as i8 + direction.0,
+        new_sq.rank() as i8 + direction.1,
+    ) {
+        result |= BitBoard::new(current_square);
+        if result & occ != BitBoard(masks::EMPTY) {
+            break;
         }
+        new_sq = current_square;
+    }
 
     result
 }

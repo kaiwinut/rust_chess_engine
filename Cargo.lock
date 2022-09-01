@@ -482,6 +482,7 @@ name = "rust_chess_engine"
 version = "0.1.0"
 dependencies = [
  "arr_macro",
+ "bitflags",
  "chrono",
  "criterion",
  "fastrand",

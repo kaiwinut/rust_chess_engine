@@ -28,6 +28,41 @@ impl Move {
     pub fn flags(&self) -> MoveFlags {
         unsafe { MoveFlags::from_bits_unchecked(((self.0 >> 12) & 15) as u8) }
     }
+
+    #[allow(dead_code)]
+    pub fn promotion(&self, is_white: bool) -> Piece {
+        match self.flags() {
+            MoveFlags::PROMOTE_TO_KNIGHT | MoveFlags::PROMOTE_CAPTURE_TO_KNIGHT => {
+                if is_white {
+                    Piece::WN
+                } else {
+                    Piece::BN
+                }
+            }
+            MoveFlags::PROMOTE_TO_BISHOP | MoveFlags::PROMOTE_CAPTURE_TO_BISHOP => {
+                if is_white {
+                    Piece::WB
+                } else {
+                    Piece::BB
+                }
+            }
+            MoveFlags::PROMOTE_TO_ROOK | MoveFlags::PROMOTE_CAPTURE_TO_ROOK => {
+                if is_white {
+                    Piece::WR
+                } else {
+                    Piece::BR
+                }
+            }
+            MoveFlags::PROMOTE_TO_QUEEN | MoveFlags::PROMOTE_CAPTURE_TO_QUEEN => {
+                if is_white {
+                    Piece::WQ
+                } else {
+                    Piece::BQ
+                }
+            }
+            _ => panic!("Move is not promotion, flag : {:?}", self.flags()),
+        }
+    }
 }
 
 impl fmt::Display for Move {
@@ -197,6 +232,12 @@ pub fn scan_pawn_single_push(
         board.occupancy[Color::WHITE.to_usize()] | board.occupancy[Color::BLACK.to_usize()];
     let shift = if is_white { 8 } else { -8 };
 
+    let enemy_backrank = if is_white {
+        BitBoard(masks::RANK_8)
+    } else {
+        BitBoard(masks::RANK_1)
+    };
+
     let mut pawn_moves = match color {
         Color::WHITE => piece_bb << 8u8,
         Color::BLACK => piece_bb >> 8u8,
@@ -212,8 +253,19 @@ pub fn scan_pawn_single_push(
         let from_square = Square((to_bb.bit_scan() as i8 - shift) as u8);
         pawn_moves = pawn_moves.pop_lsb();
 
-        moves[index] = Move::new(from_square, to_square, MoveFlags::QUIET);
-        index += 1;
+        if to_bb & enemy_backrank != BitBoard(masks::EMPTY) {
+            moves[index] = Move::new(from_square, to_square, MoveFlags::PROMOTE_TO_KNIGHT);
+            index += 1;
+            moves[index] = Move::new(from_square, to_square, MoveFlags::PROMOTE_TO_BISHOP);
+            index += 1;
+            moves[index] = Move::new(from_square, to_square, MoveFlags::PROMOTE_TO_ROOK);
+            index += 1;
+            moves[index] = Move::new(from_square, to_square, MoveFlags::PROMOTE_TO_QUEEN);
+            index += 1;
+        } else {
+            moves[index] = Move::new(from_square, to_square, MoveFlags::QUIET);
+            index += 1;
+        }
     }
 
     index
@@ -278,6 +330,12 @@ pub fn scan_pawn_diagonal_attacks(
         masks::FILE_H
     });
 
+    let enemy_backrank = if is_white {
+        BitBoard(masks::RANK_8)
+    } else {
+        BitBoard(masks::RANK_1)
+    };
+
     let mut pawn_moves = match color {
         Color::WHITE => (piece_bb & not_on_file) << (shift as u8),
         Color::BLACK => (piece_bb & not_on_file) >> (shift as u8),
@@ -295,18 +353,29 @@ pub fn scan_pawn_diagonal_attacks(
         let from_square = Square((to_bb.bit_scan() as i8 - shift) as u8);
         pawn_moves = pawn_moves.pop_lsb();
 
-        let is_en_passant = (to_bb & board.en_passant) != BitBoard(masks::EMPTY);
+        if to_bb & enemy_backrank != BitBoard(masks::EMPTY) {
+            moves[index] = Move::new(from_square, to_square, MoveFlags::PROMOTE_CAPTURE_TO_KNIGHT);
+            index += 1;
+            moves[index] = Move::new(from_square, to_square, MoveFlags::PROMOTE_CAPTURE_TO_BISHOP);
+            index += 1;
+            moves[index] = Move::new(from_square, to_square, MoveFlags::PROMOTE_CAPTURE_TO_ROOK);
+            index += 1;
+            moves[index] = Move::new(from_square, to_square, MoveFlags::PROMOTE_CAPTURE_TO_QUEEN);
+            index += 1;
+        } else {
+            let is_en_passant = (to_bb & board.en_passant) != BitBoard(masks::EMPTY);
 
-        moves[index] = Move::new(
-            from_square,
-            to_square,
-            if is_en_passant {
-                MoveFlags::EN_PASSANT
-            } else {
-                MoveFlags::CAPTURE
-            },
-        );
-        index += 1;
+            moves[index] = Move::new(
+                from_square,
+                to_square,
+                if is_en_passant {
+                    MoveFlags::EN_PASSANT
+                } else {
+                    MoveFlags::CAPTURE
+                },
+            );
+            index += 1;
+        }
     }
 
     index
@@ -314,21 +383,21 @@ pub fn scan_pawn_diagonal_attacks(
 
 bitflags! {
     pub struct MoveFlags: u8 {
-        const QUIET = 0;
-        const DOUBLE_PUSH = 1;
-        const SHORT_CASTLE = 2;
-        const LONG_CASTLE = 3;
-        const CAPTURE = 4;
-        const EN_PASSANT = 5;
-        const UNDEFINED1 = 6;
-        const UNDEFINED2 = 7;
-        const PROMOTE_TO_KNIGHT = 8;
-        const PROMOTE_TO_BISHOP = 9;
-        const PROMOTE_TO_ROOK = 10;
-        const PROMOTE_TO_QUEEN = 11;
-        const PROMOTE_CAPTURE_TO_KNIGHT = 12;
-        const PROMOTE_CAPTURE_TO_BISHOP = 13;
-        const PROMOTE_CAPTURE_TO_ROOK = 14;
-        const PROMOTE_CAPTURE_TO_QUEEN = 15;
+        const QUIET = 0b0000;
+        const DOUBLE_PUSH = 0b0001;
+        const SHORT_CASTLE = 0b0010;
+        const LONG_CASTLE = 0b0011;
+        const CAPTURE = 0b0100;
+        const EN_PASSANT = 0b0101;
+        const UNDEFINED1 = 0b0110;
+        const UNDEFINED2 = 0b0111;
+        const PROMOTE_TO_KNIGHT = 0b1000;
+        const PROMOTE_TO_BISHOP = 0b1001;
+        const PROMOTE_TO_ROOK = 0b1010;
+        const PROMOTE_TO_QUEEN = 0b1011;
+        const PROMOTE_CAPTURE_TO_KNIGHT = 0b1100;
+        const PROMOTE_CAPTURE_TO_BISHOP = 0b1101;
+        const PROMOTE_CAPTURE_TO_ROOK = 0b1110;
+        const PROMOTE_CAPTURE_TO_QUEEN = 0b1111;
     }
 }

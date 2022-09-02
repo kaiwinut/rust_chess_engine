@@ -160,7 +160,25 @@ impl Board {
                     self.move_piece(square::A8, square::D8, Piece::BR);
                 }
             },
-            _ => panic!("Invalid flag: {:?}", flags),
+            _ => {
+                // All promotions contains this bit
+                if flags.contains(MoveFlags::PROMOTE_TO_KNIGHT) {
+                    let promotion = m.promotion(is_white);
+
+                    // All promotion captures contains this bit
+                    if flags.contains(MoveFlags::CAPTURE) {
+                        let captured_piece = self.piece_at_square(to);
+                        assert_ne!(captured_piece, Piece::EMPTY);
+                        self.captured_pieces_stack.push(captured_piece);
+                        self.remove_piece_from_square(captured_piece, to);
+                    }
+
+                    self.remove_piece_from_square(piece, from);
+                    self.add_piece_to_square(promotion, to);
+                } else {
+                    panic!("Ivalid flag: {:?}", flags);
+                }
+            }
         }
 
         if piece == Piece::WK {
@@ -244,7 +262,23 @@ impl Board {
                     self.move_piece(square::D8, square::A8, Piece::BR);
                 }
             },
-            _ => panic!("Invalid flag: {:?}", flags),
+            _ => {
+                // All promotions contains this bit
+                if flags.contains(MoveFlags::PROMOTE_TO_KNIGHT) {
+                    let promotion = piece;
+                    self.remove_piece_from_square(promotion, to);
+                    self.add_piece_to_square(if is_white { Piece::WP } else { Piece::BP }, from);
+
+                    // All promotion captures contains this bit
+                    if flags.contains(MoveFlags::CAPTURE) {
+                        let captured_piece = self.captured_pieces_stack.pop().unwrap();
+                        assert_ne!(captured_piece, Piece::EMPTY);
+                        self.add_piece_to_square(captured_piece, to);
+                    }
+                } else {
+                    panic!("Ivalid flag: {:?}", flags);
+                }
+            }
         }
 
         self.castling_rights = self.castling_rights_stack.pop().unwrap();

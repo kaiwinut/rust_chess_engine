@@ -1,8 +1,9 @@
+use crate::core::utils::grid_to_string;
+use bitflags::bitflags;
 use std::fmt;
 
-use crate::core::utils::grid_to_string;
-
 use super::{
+    super::super::core::square,
     super::super::core::{masks, BitBoard, Square},
     movescan::{scan_pawn_moves, scan_piece_moves, Move, MoveFlags},
 };
@@ -15,8 +16,10 @@ pub struct Board {
     pub occupancy: [BitBoard; 2],
     pub color_to_move: Color,
     pub en_passant: BitBoard,
+    pub castling_rights: CastlingRights,
     pub captured_pieces_stack: Vec<Piece>,
     pub en_passant_stack: Vec<BitBoard>,
+    pub castling_rights_stack: Vec<CastlingRights>,
 }
 
 impl Board {
@@ -30,8 +33,10 @@ impl Board {
                 occupancy: [BitBoard(masks::EMPTY); 2],
                 color_to_move: Color::WHITE,
                 en_passant: BitBoard(masks::EMPTY),
+                castling_rights: CastlingRights::NONE,
                 captured_pieces_stack: Vec::new(),
                 en_passant_stack: Vec::new(),
+                castling_rights_stack: Vec::new(),
             }
         } else {
             Board {
@@ -65,8 +70,10 @@ impl Board {
                 ],
                 color_to_move: Color::WHITE,
                 en_passant: BitBoard(masks::EMPTY),
+                castling_rights: CastlingRights::ALL,
                 captured_pieces_stack: Vec::with_capacity(16),
                 en_passant_stack: Vec::with_capacity(16),
+                castling_rights_stack: Vec::with_capacity(16),
             }
         }
     }
@@ -104,6 +111,7 @@ impl Board {
         let piece = self.piece_at_square(from);
         let is_white = piece.color() == Color::WHITE;
 
+        self.castling_rights_stack.push(self.castling_rights);
         self.en_passant_stack.push(self.en_passant);
         self.en_passant = BitBoard(masks::EMPTY);
 
@@ -132,7 +140,56 @@ impl Board {
                     Square((to.to_i8() + if is_white { -8 } else { 8 }) as u8),
                 );
             }
+            MoveFlags::SHORT_CASTLE => match is_white {
+                true => {
+                    self.move_piece(square::E1, square::G1, Piece::WK);
+                    self.move_piece(square::H1, square::F1, Piece::WR);
+                }
+                false => {
+                    self.move_piece(square::E8, square::G8, Piece::BK);
+                    self.move_piece(square::H8, square::F8, Piece::BR);
+                }
+            },
+            MoveFlags::LONG_CASTLE => match is_white {
+                true => {
+                    self.move_piece(square::E1, square::C1, Piece::WK);
+                    self.move_piece(square::A1, square::D1, Piece::WR);
+                }
+                false => {
+                    self.move_piece(square::E8, square::C8, Piece::BK);
+                    self.move_piece(square::A8, square::D8, Piece::BR);
+                }
+            },
             _ => panic!("Invalid flag: {:?}", flags),
+        }
+
+        if piece == Piece::WK {
+            self.castling_rights &= !CastlingRights::WHITE_CASTLE;
+        }
+        if piece == Piece::BK {
+            self.castling_rights &= !CastlingRights::BLACK_CASTLE;
+        }
+        if piece == Piece::WR {
+            match from {
+                square::A1 => {
+                    self.castling_rights &= !CastlingRights::WHITE_LONG_CASTLE;
+                }
+                square::H1 => {
+                    self.castling_rights &= !CastlingRights::WHITE_SHORT_CASTLE;
+                }
+                _ => {}
+            }
+        }
+        if piece == Piece::BR {
+            match from {
+                square::A8 => {
+                    self.castling_rights &= !CastlingRights::BLACK_LONG_CASTLE;
+                }
+                square::H8 => {
+                    self.castling_rights &= !CastlingRights::BLACK_SHORT_CASTLE;
+                }
+                _ => {}
+            }
         }
 
         self.color_to_move = self.color_to_move.enemy();
@@ -167,9 +224,30 @@ impl Board {
                     Square((to.to_i8() + if is_white { -8 } else { 8 }) as u8),
                 );
             }
+            MoveFlags::SHORT_CASTLE => match is_white {
+                true => {
+                    self.move_piece(square::G1, square::E1, Piece::WK);
+                    self.move_piece(square::F1, square::H1, Piece::WR);
+                }
+                false => {
+                    self.move_piece(square::G8, square::E8, Piece::BK);
+                    self.move_piece(square::F8, square::H8, Piece::BR);
+                }
+            },
+            MoveFlags::LONG_CASTLE => match is_white {
+                true => {
+                    self.move_piece(square::C1, square::E1, Piece::WK);
+                    self.move_piece(square::D1, square::A1, Piece::WR);
+                }
+                false => {
+                    self.move_piece(square::C8, square::E8, Piece::BK);
+                    self.move_piece(square::D8, square::A8, Piece::BR);
+                }
+            },
             _ => panic!("Invalid flag: {:?}", flags),
         }
 
+        self.castling_rights = self.castling_rights_stack.pop().unwrap();
         self.en_passant = self.en_passant_stack.pop().unwrap();
         self.color_to_move = self.color_to_move.enemy();
     }
@@ -218,7 +296,7 @@ impl Board {
     }
 
     #[allow(dead_code)]
-    fn is_sqaure_attacked(&self, square: Square, color: Color) -> bool {
+    pub fn is_sqaure_attacked(&self, square: Square, color: Color) -> bool {
         let enemy = color.enemy();
         let enemy_rook = if enemy == Color::WHITE {
             Piece::WR.to_usize()
@@ -323,6 +401,20 @@ impl fmt::Display for Board {
                 None
             )
         )
+    }
+}
+
+bitflags! {
+    pub struct CastlingRights: u8 {
+        const NONE = 0b0000;
+        const WHITE_SHORT_CASTLE = 0b0001;
+        const WHITE_LONG_CASTLE = 0b0010;
+        const BLACK_SHORT_CASTLE = 0b0100;
+        const BLACK_LONG_CASTLE = 0b1000;
+
+        const WHITE_CASTLE = Self::WHITE_SHORT_CASTLE.bits | Self::WHITE_LONG_CASTLE.bits;
+        const BLACK_CASTLE = Self::BLACK_SHORT_CASTLE.bits | Self::BLACK_LONG_CASTLE.bits;
+        const ALL = Self::WHITE_CASTLE.bits | Self::BLACK_CASTLE.bits;
     }
 }
 

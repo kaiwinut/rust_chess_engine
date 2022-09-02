@@ -1,4 +1,4 @@
-use crate::core::{masks, BitBoard, Square};
+use crate::core::{masks, square, BitBoard, Square};
 use bitflags::bitflags;
 use std::fmt;
 
@@ -80,6 +80,92 @@ pub fn scan_piece_moves(
 
             moves[index] = Move::new(from_square, to_square, flags);
             index += 1;
+        }
+
+        match piece {
+            Piece::WK => {
+                let can_short_castle = board
+                    .castling_rights
+                    .contains(CastlingRights::WHITE_SHORT_CASTLE);
+                let can_long_castle = board
+                    .castling_rights
+                    .contains(CastlingRights::WHITE_LONG_CASTLE);
+
+                if can_short_castle
+                    && (all_occupancy & (BitBoard::new(square::F1) | BitBoard::new(square::G1)))
+                        == BitBoard(masks::EMPTY)
+                {
+                    let is_rook_exist = board.piece_at_square(square::H1) == Piece::WR;
+                    let is_in_attack = board.is_sqaure_attacked(square::E1, Color::WHITE)
+                        || board.is_sqaure_attacked(square::F1, Color::WHITE)
+                        || board.is_sqaure_attacked(square::G1, Color::WHITE);
+
+                    if !is_in_attack && is_rook_exist {
+                        moves[index] = Move::new(square::E1, square::F1, MoveFlags::SHORT_CASTLE);
+                        index += 1;
+                    }
+                }
+
+                if can_long_castle
+                    && (all_occupancy
+                        & (BitBoard::new(square::D1)
+                            | BitBoard::new(square::C1)
+                            | BitBoard::new(square::B1)))
+                        == BitBoard(masks::EMPTY)
+                {
+                    let is_rook_exist = board.piece_at_square(square::A1) == Piece::WR;
+                    let is_in_attack = board.is_sqaure_attacked(square::E1, Color::WHITE)
+                        || board.is_sqaure_attacked(square::D1, Color::WHITE)
+                        || board.is_sqaure_attacked(square::C1, Color::WHITE);
+
+                    if !is_in_attack && is_rook_exist {
+                        moves[index] = Move::new(square::E1, square::C1, MoveFlags::LONG_CASTLE);
+                        index += 1;
+                    }
+                }
+            }
+            Piece::BK => {
+                let can_short_castle = board
+                    .castling_rights
+                    .contains(CastlingRights::BLACK_SHORT_CASTLE);
+                let can_long_castle = board
+                    .castling_rights
+                    .contains(CastlingRights::BLACK_LONG_CASTLE);
+
+                if can_short_castle
+                    && (all_occupancy & (BitBoard::new(square::F8) | BitBoard::new(square::G8)))
+                        == BitBoard(masks::EMPTY)
+                {
+                    let is_rook_exist = board.piece_at_square(square::H8) == Piece::BR;
+                    let is_in_attack = board.is_sqaure_attacked(square::E8, Color::BLACK)
+                        || board.is_sqaure_attacked(square::F8, Color::BLACK)
+                        || board.is_sqaure_attacked(square::G8, Color::BLACK);
+
+                    if !is_in_attack && is_rook_exist {
+                        moves[index] = Move::new(square::E8, square::F8, MoveFlags::SHORT_CASTLE);
+                        index += 1;
+                    }
+                }
+
+                if can_long_castle
+                    && (all_occupancy
+                        & (BitBoard::new(square::D8)
+                            | BitBoard::new(square::C8)
+                            | BitBoard::new(square::B8)))
+                        == BitBoard(masks::EMPTY)
+                {
+                    let is_rook_exist = board.piece_at_square(square::A8) == Piece::BR;
+                    let is_in_attack = board.is_sqaure_attacked(square::E8, Color::BLACK)
+                        || board.is_sqaure_attacked(square::D8, Color::BLACK)
+                        || board.is_sqaure_attacked(square::C8, Color::BLACK);
+
+                    if !is_in_attack && is_rook_exist {
+                        moves[index] = Move::new(square::E8, square::C8, MoveFlags::LONG_CASTLE);
+                        index += 1;
+                    }
+                }
+            }
+            _ => {}
         }
     }
 
@@ -230,8 +316,8 @@ bitflags! {
     pub struct MoveFlags: u8 {
         const QUIET = 0;
         const DOUBLE_PUSH = 1;
-        const CASTLE_KING = 2;
-        const CASTLE_QUEEN = 3;
+        const SHORT_CASTLE = 2;
+        const LONG_CASTLE = 3;
         const CAPTURE = 4;
         const EN_PASSANT = 5;
         const UNDEFINED1 = 6;

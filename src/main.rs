@@ -19,7 +19,7 @@ fn main() {
     let interval = Utc::now() - start;
     println!("\nTime: {} ms\n", interval.num_milliseconds());
 
-    let depth = 6;
+    let depth = 7;
     let start = Utc::now();
     let count = perft::run(depth);
     let interval = Utc::now() - start;

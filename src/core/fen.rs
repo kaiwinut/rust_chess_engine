@@ -4,7 +4,7 @@ use super::square;
 use super::{BitBoard, Square};
 
 #[allow(dead_code)]
-pub fn fen_to_board(fen: &str) -> Result<Board, &str> {
+pub fn fen_to_board(fen: &str) -> Result<Board, &'static str> {
     let slices: Vec<&str> = fen.split(' ').collect();
     if slices.len() < 6 {
         return Err("Invalid FEN while converting fen to board");
@@ -22,7 +22,7 @@ pub fn fen_to_board(fen: &str) -> Result<Board, &str> {
 }
 
 #[allow(dead_code)]
-fn add_pieces_from_fen<'a>(board: &mut Board, fen_str: &str) -> Result<(), &'a str> {
+fn add_pieces_from_fen(board: &mut Board, fen_str: &str) -> Result<(), &'static str> {
     let mut current_index: u8 = 56;
     for c in fen_str.chars() {
         if c == '/' {
@@ -56,7 +56,7 @@ fn add_pieces_from_fen<'a>(board: &mut Board, fen_str: &str) -> Result<(), &'a s
 }
 
 #[allow(dead_code)]
-fn add_color_to_move_from_fen<'a>(board: &mut Board, fen_str: &str) -> Result<(), &'a str> {
+fn add_color_to_move_from_fen(board: &mut Board, fen_str: &str) -> Result<(), &'static str> {
     board.color_to_move = if fen_str.starts_with('w') {
         Color::WHITE
     } else {
@@ -66,7 +66,7 @@ fn add_color_to_move_from_fen<'a>(board: &mut Board, fen_str: &str) -> Result<()
 }
 
 #[allow(dead_code)]
-fn add_castling_rights_from_fen<'a>(board: &mut Board, fen_str: &str) -> Result<(), &'a str> {
+fn add_castling_rights_from_fen(board: &mut Board, fen_str: &str) -> Result<(), &'static str> {
     if fen_str == "-" {
         return Ok(());
     }
@@ -85,7 +85,7 @@ fn add_castling_rights_from_fen<'a>(board: &mut Board, fen_str: &str) -> Result<
 }
 
 #[allow(dead_code)]
-fn add_en_passant_from_fen<'a>(board: &mut Board, fen_str: &str) -> Result<(), &'a str> {
+fn add_en_passant_from_fen(board: &mut Board, fen_str: &str) -> Result<(), &'static str> {
     if fen_str == "-" {
         return Ok(());
     }
@@ -100,7 +100,7 @@ fn add_en_passant_from_fen<'a>(board: &mut Board, fen_str: &str) -> Result<(), &
 }
 
 #[allow(dead_code)]
-fn add_half_move_clock_from_fen<'a>(board: &mut Board, fen_str: &str) -> Result<(), &'a str> {
+fn add_half_move_clock_from_fen(board: &mut Board, fen_str: &str) -> Result<(), &'static str> {
     board.half_move_clock = match fen_str.parse::<usize>() {
         Ok(value) => value,
         Err(_) => return Err("Invalid FEN while parsing half move clock"),
@@ -110,7 +110,7 @@ fn add_half_move_clock_from_fen<'a>(board: &mut Board, fen_str: &str) -> Result<
 }
 
 #[allow(dead_code)]
-fn add_full_move_number_from_fen<'a>(board: &mut Board, fen_str: &str) -> Result<(), &'a str> {
+fn add_full_move_number_from_fen(board: &mut Board, fen_str: &str) -> Result<(), &'static str> {
     board.full_move_number = match fen_str.parse::<usize>() {
         Ok(value) => value,
         Err(_) => return Err("Invalid FEN while parsing full move number"),

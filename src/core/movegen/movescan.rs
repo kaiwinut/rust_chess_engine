@@ -1,5 +1,8 @@
+#![allow(clippy::uninit_assumed_init)]
+
 use bitflags::bitflags;
 use std::fmt;
+use std::mem::MaybeUninit;
 
 use super::*;
 use crate::core::board::*;
@@ -62,6 +65,42 @@ impl Move {
             }
             _ => panic!("Move is not promotion, flag : {:?}", self.flags()),
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn as_string(&self) -> String {
+        let from = self.from();
+        let to = self.to();
+
+        let string = vec![
+            from.as_string(),
+            to.as_string(),
+        ];
+
+        string.into_iter().collect()
+    }
+
+    #[allow(dead_code)]
+    pub fn from_string(string: &str, board: &Board) -> Result<Move, &'static str> {
+        if string.len() < 4 {
+            return Err("Invalid move: move string is too short");
+        }
+
+        let from = Square::from_string(&string[0..2]);
+        let to = Square::from_string(&string[2..4]);
+
+        let mut moves : [Move; 218] = unsafe {
+            MaybeUninit::uninit().assume_init()
+        };
+        let moves_count = board.get_moves(&mut moves, board.color_to_move);
+
+        for m in moves.iter().take(moves_count) {
+            if m.from() == from.unwrap() && m.to() == to.unwrap() {
+                return Ok(*m);
+            }
+        }
+
+        Err("Invalid move: move not found in position")
     }
 }
 

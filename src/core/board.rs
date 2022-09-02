@@ -87,8 +87,19 @@ impl Board {
     }
 
     #[allow(dead_code)]
-    pub fn from(fen: &str) -> Self {
-        fen::fen_to_board(fen).unwrap()
+    pub fn from(fen: &str) -> Result<Self, &'static str> {
+        fen::fen_to_board(fen)
+    }
+
+    #[allow(dead_code)]
+    pub fn from_moves(moves: &[&str]) -> Result<Self, &'static str> {
+        let mut board = Board::new();
+        for move_str in moves {
+            let m = Move::from_string(move_str.trim(), &board)?;
+            board.make_move(&m);
+        }
+
+        Ok(board)
     }
 
     #[allow(dead_code)]

@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod perft_tests {
     use rust_chess_engine::core::movegen;
+    use rust_chess_engine::core::Board;
     use rust_chess_engine::perft;
     use std::sync::Once;
 
@@ -15,7 +16,7 @@ mod perft_tests {
                     movegen::init();
                 });
 
-                assert_eq!($expected_nodes, perft::run($depth));
+                assert_eq!($expected_nodes, perft::run($depth, &mut Board::new()).unwrap());
             }
          )*
         }
@@ -32,3 +33,15 @@ mod perft_tests {
         // test_perft_depth_7: 7, 3195901860,
     }
 }
+
+// mod perft_divided_tests {
+//     use rust_chess_engine::core::movegen;
+//     use rust_chess_engine::core::Board;
+//     use rust_chess_engine::perft;
+
+//     #[test]
+//     fn test_perft_divided_depth_3() {
+//         movegen::init();
+//         println!("{:?}", perft::run_divided(3, &mut Board::new()));
+//     }
+// }

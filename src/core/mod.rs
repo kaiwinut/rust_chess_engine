@@ -8,3 +8,4 @@ mod utils;
 
 pub use bitboard::*;
 pub use square::Square;
+pub use board::{Board, Color, Piece};

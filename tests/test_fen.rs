@@ -6,7 +6,7 @@ mod fen_tests {
     fn test_fen_to_board() {
         let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-        assert_eq!(Board::new(), Board::from(fen));
+        assert_eq!(Board::new(), Board::from(fen).unwrap());
     }
 
     #[test]
@@ -21,7 +21,7 @@ mod fen_tests {
             $(
                 #[test]
                 fn $fn_name() {
-                    let board = Board::from($fen);
+                    let board = Board::from($fen).unwrap();
                     assert_eq!($fen, board.to_fen());
                 }
             )*

@@ -199,7 +199,7 @@ pub fn scan_pawn_diagonal_attacks(
             "Invalid color when getting pawn diagonal attacks, color : {}",
             color
         ),
-    } & board.occupancy[color.enemy().to_usize()];
+    } & (board.occupancy[color.enemy().to_usize()] | board.en_passant);
 
     let shift = if is_white { shift } else { -shift };
 
@@ -209,7 +209,17 @@ pub fn scan_pawn_diagonal_attacks(
         let from_square = Square((to_bb.bit_scan() as i8 - shift) as u8);
         pawn_moves = pawn_moves.pop_lsb();
 
-        moves[index] = Move::new(from_square, to_square, MoveFlags::CAPTURE);
+        let is_en_passant = (to_bb & board.en_passant) != BitBoard(masks::EMPTY);
+
+        moves[index] = Move::new(
+            from_square,
+            to_square,
+            if is_en_passant {
+                MoveFlags::EN_PASSANT
+            } else {
+                MoveFlags::CAPTURE
+            },
+        );
         index += 1;
     }
 

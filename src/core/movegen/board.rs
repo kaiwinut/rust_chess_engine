@@ -14,7 +14,9 @@ pub struct Board {
     pub pieces: [BitBoard; 12],
     pub occupancy: [BitBoard; 2],
     pub color_to_move: Color,
-    pub captured_pieces: Vec<Piece>,
+    pub en_passant: BitBoard,
+    pub captured_pieces_stack: Vec<Piece>,
+    pub en_passant_stack: Vec<BitBoard>,
 }
 
 impl Board {
@@ -27,7 +29,9 @@ impl Board {
                 pieces: [BitBoard(masks::EMPTY); 12],
                 occupancy: [BitBoard(masks::EMPTY); 2],
                 color_to_move: Color::WHITE,
-                captured_pieces: Vec::new(),
+                en_passant: BitBoard(masks::EMPTY),
+                captured_pieces_stack: Vec::new(),
+                en_passant_stack: Vec::new(),
             }
         } else {
             Board {
@@ -60,7 +64,9 @@ impl Board {
                     BitBoard(0xffff_0000_0000_0000),
                 ],
                 color_to_move: Color::WHITE,
-                captured_pieces: Vec::with_capacity(16),
+                en_passant: BitBoard(masks::EMPTY),
+                captured_pieces_stack: Vec::with_capacity(16),
+                en_passant_stack: Vec::with_capacity(16),
             }
         }
     }
@@ -96,19 +102,35 @@ impl Board {
         let to = m.to();
         let flags = m.flags();
         let piece = self.piece_at_square(from);
+        let is_white = piece.color() == Color::WHITE;
+
+        self.en_passant_stack.push(self.en_passant);
+        self.en_passant = BitBoard(masks::EMPTY);
 
         match flags {
-            MoveFlags::QUIET | MoveFlags::DOUBLE_PUSH => {
+            MoveFlags::QUIET => {
                 self.move_piece(from, to, piece);
+            }
+            MoveFlags::DOUBLE_PUSH => {
+                self.move_piece(from, to, piece);
+                self.en_passant =
+                    BitBoard::new(Square((to.to_i8() + if is_white { -8 } else { 8 }) as u8))
             }
             MoveFlags::CAPTURE => {
                 let captured_piece = self.piece_at_square(to);
                 assert_ne!(captured_piece, Piece::EMPTY);
 
-                self.captured_pieces.push(captured_piece);
+                self.captured_pieces_stack.push(captured_piece);
 
                 self.remove_piece_from_square(captured_piece, to);
                 self.move_piece(from, to, piece);
+            }
+            MoveFlags::EN_PASSANT => {
+                self.move_piece(from, to, piece);
+                self.remove_piece_from_square(
+                    if is_white { Piece::BP } else { Piece::WP },
+                    Square((to.to_i8() + if is_white { -8 } else { 8 }) as u8),
+                );
             }
             _ => panic!("Invalid flag: {:?}", flags),
         }
@@ -122,21 +144,33 @@ impl Board {
         let to = m.to();
         let flags = m.flags();
         let piece = self.piece_at_square(to);
+        let is_white = piece.color() == Color::WHITE;
 
         match flags {
-            MoveFlags::QUIET | MoveFlags::DOUBLE_PUSH => {
+            MoveFlags::QUIET => {
+                self.move_piece(to, from, piece);
+            }
+            MoveFlags::DOUBLE_PUSH => {
                 self.move_piece(to, from, piece);
             }
             MoveFlags::CAPTURE => {
                 self.move_piece(to, from, piece);
 
-                let captured_piece = self.captured_pieces.pop().unwrap();
+                let captured_piece = self.captured_pieces_stack.pop().unwrap();
                 assert_ne!(captured_piece, Piece::EMPTY);
                 self.add_piece_to_square(captured_piece, to);
+            }
+            MoveFlags::EN_PASSANT => {
+                self.move_piece(to, from, piece);
+                self.add_piece_to_square(
+                    if is_white { Piece::BP } else { Piece::WP },
+                    Square((to.to_i8() + if is_white { -8 } else { 8 }) as u8),
+                );
             }
             _ => panic!("Invalid flag: {:?}", flags),
         }
 
+        self.en_passant = self.en_passant_stack.pop().unwrap();
         self.color_to_move = self.color_to_move.enemy();
     }
 

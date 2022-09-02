@@ -1,9 +1,9 @@
 use bitflags::bitflags;
 use std::fmt;
 
-use crate::core::{masks, square, BitBoard, Square};
-use crate::core::board::*;
 use super::*;
+use crate::core::board::*;
+use crate::core::{masks, square, BitBoard, Square};
 
 #[derive(Clone, Copy)]
 pub struct Move(pub u16);

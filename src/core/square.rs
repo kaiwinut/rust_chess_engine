@@ -256,24 +256,3 @@ pub const H6: Square = Square(47);
 pub const H7: Square = Square(55);
 #[allow(dead_code)]
 pub const H8: Square = Square(63);
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_square_from() {
-        let file1 = 0;
-        let file2 = -1;
-        let rank1 = 5;
-
-        assert_eq!(Square::from(file1, rank1), Some(A6));
-        assert_eq!(Square::from(file2, rank1), None);
-    }
-
-    #[test]
-    fn test_square_from_string() {
-        assert_eq!(Square::from_string("d4"), Some(D4));
-        assert_eq!(Square::from_string("e5"), Some(E5));
-    }
-}

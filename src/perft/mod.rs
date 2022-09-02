@@ -1,17 +1,17 @@
 #![allow(clippy::uninit_assumed_init)]
 
-use super::core::movegen::movescan::*;
 use super::core::board::*;
+use super::core::movegen::movescan::*;
 use std::mem::MaybeUninit;
 
 pub fn run(depth: u8) -> u32 {
     let mut board = Board::new();
     let color = board.color_to_move;
 
-    search_depth(depth, depth, &mut board, color)
+    run_depth(depth, depth, &mut board, color)
 }
 
-fn search_depth(depth: u8, max_depth: u8, board: &mut Board, color: Color) -> u32 {
+fn run_depth(depth: u8, max_depth: u8, board: &mut Board, color: Color) -> u32 {
     if depth == 0 {
         return 1;
     }
@@ -26,8 +26,8 @@ fn search_depth(depth: u8, max_depth: u8, board: &mut Board, color: Color) -> u3
 
         if !board.is_king_in_check(color) {
             count += match color {
-                Color::WHITE => search_depth(depth - 1, max_depth, board, Color::BLACK),
-                Color::BLACK => search_depth(depth - 1, max_depth, board, Color::WHITE),
+                Color::WHITE => run_depth(depth - 1, max_depth, board, Color::BLACK),
+                Color::BLACK => run_depth(depth - 1, max_depth, board, Color::WHITE),
                 _ => panic!("Invalid color value when running perft, color : {}", color),
             };
         }

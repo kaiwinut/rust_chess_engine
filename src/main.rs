@@ -3,13 +3,12 @@ mod perft;
 
 use std::mem::MaybeUninit;
 
-use crate::core::movegen::{self, get_bishop_attacks, get_queen_attacks};
-use crate::core::movegen::movescan::*;
 use crate::core::board::*;
+use crate::core::movegen::movescan::*;
+use crate::core::movegen::{self, get_bishop_attacks, get_queen_attacks};
 use crate::core::{square, BitBoard};
 
 use chrono::*;
-
 
 fn main() {
     let start = Utc::now();

@@ -1,9 +1,9 @@
 use bitflags::bitflags;
 use std::fmt;
 
-use super::{fen, masks, square, BitBoard, Square};
-use super::utils::grid_to_string;
 use super::movegen::*;
+use super::utils::grid_to_string;
+use super::{fen, masks, square, BitBoard, Square};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Board {

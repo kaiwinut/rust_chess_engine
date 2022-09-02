@@ -1,6 +1,6 @@
 use super::board::*;
-use super::square;
 use super::masks;
+use super::square;
 use super::{BitBoard, Square};
 
 #[allow(dead_code)]
@@ -197,7 +197,10 @@ fn color_to_move_to_fen(board: &Board) -> String {
     match board.color_to_move {
         Color::WHITE => "w".to_string(),
         Color::BLACK => "b".to_string(),
-        _ => panic!("Invalid color to move when converting board to fen, color : {}", board.color_to_move),
+        _ => panic!(
+            "Invalid color to move when converting board to fen, color : {}",
+            board.color_to_move
+        ),
     }
 }
 
@@ -209,16 +212,28 @@ fn castling_rights_to_fen(board: &Board) -> String {
 
     let mut string = String::new();
 
-    if board.castling_rights.contains(CastlingRights::WHITE_SHORT_CASTLE) {
+    if board
+        .castling_rights
+        .contains(CastlingRights::WHITE_SHORT_CASTLE)
+    {
         string.push('K');
     }
-    if board.castling_rights.contains(CastlingRights::WHITE_LONG_CASTLE) {
+    if board
+        .castling_rights
+        .contains(CastlingRights::WHITE_LONG_CASTLE)
+    {
         string.push('Q');
     }
-    if board.castling_rights.contains(CastlingRights::BLACK_SHORT_CASTLE) {
+    if board
+        .castling_rights
+        .contains(CastlingRights::BLACK_SHORT_CASTLE)
+    {
         string.push('k');
     }
-    if board.castling_rights.contains(CastlingRights::BLACK_LONG_CASTLE) {
+    if board
+        .castling_rights
+        .contains(CastlingRights::BLACK_LONG_CASTLE)
+    {
         string.push('q');
     }
 
@@ -242,23 +257,4 @@ fn half_move_clock_to_fen(board: &Board) -> String {
 #[allow(dead_code)]
 fn full_move_number_to_fen(board: &Board) -> String {
     board.full_move_number.to_string()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_fen_to_board() {
-        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
-        assert_eq!(Board::new(), Board::from(fen));
-    }
-
-    #[test]
-    fn test_board_to_fen() {
-        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
-        assert_eq!(Board::new().to_fen(), fen);
-    }
 }

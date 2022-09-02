@@ -180,34 +180,3 @@ impl fmt::Display for BitBoard {
         )
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::super::masks;
-    use super::super::square;
-    use super::*;
-
-    #[test]
-    fn test_lsb() {
-        let bitboard = BitBoard::new(square::D4);
-        assert_eq!(bitboard.lsb(), BitBoard(1u64) << square::D4.to_u8());
-    }
-
-    #[test]
-    fn test_pop_lsb() {
-        let bitboard = BitBoard::new(square::D4);
-        assert_eq!(bitboard.pop_lsb(), BitBoard(masks::EMPTY));
-    }
-
-    #[test]
-    fn test_pop_count() {
-        let bitboard = BitBoard::new(square::D4);
-        assert_eq!(bitboard.pop_count(), 1);
-    }
-
-    #[test]
-    fn test_bit_scan() {
-        let bitboard = BitBoard::new(square::D4);
-        assert_eq!(bitboard.bit_scan(), square::D4.to_u8());
-    }
-}

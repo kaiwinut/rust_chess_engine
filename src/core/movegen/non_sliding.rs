@@ -53,23 +53,3 @@ fn generate_knight_attacks() {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::super::super::square;
-    use super::*;
-
-    #[test]
-    fn test_get_non_sliding_attacks() {
-        init_non_sliding_attacks();
-
-        let sq1 = square::A4;
-        let sq2 = square::B4;
-
-        assert_eq!(get_king_attacks(sq1), BitBoard(0x0000000302030000));
-        assert_eq!(get_knight_attacks(sq1), BitBoard(0x0000020400040200));
-
-        assert_eq!(get_king_attacks(sq2), BitBoard(0x0000000705070000));
-        assert_eq!(get_knight_attacks(sq2), BitBoard(0x0000050800080500));
-    }
-}

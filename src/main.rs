@@ -5,7 +5,7 @@ use std::mem::MaybeUninit;
 
 use crate::core::movegen::{self, get_bishop_attacks, get_queen_attacks};
 use crate::core::movegen::movescan::*;
-use crate::core::movegen::board::*;
+use crate::core::board::*;
 use crate::core::{square, BitBoard};
 
 use chrono::*;
@@ -19,7 +19,7 @@ fn main() {
     let interval = Utc::now() - start;
     println!("\nTime: {} ms\n", interval.num_milliseconds());
 
-    let depth = 7;
+    let depth = 6;
     let start = Utc::now();
     let count = perft::run(depth);
     let interval = Utc::now() - start;

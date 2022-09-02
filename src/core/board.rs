@@ -1,15 +1,11 @@
-use crate::core::utils::grid_to_string;
 use bitflags::bitflags;
 use std::fmt;
 
-use super::{
-    super::super::core::square,
-    super::super::core::{masks, BitBoard, Square},
-    movescan::{scan_pawn_moves, scan_piece_moves, Move, MoveFlags},
-};
+use super::{fen, masks, square, BitBoard, Square};
+use super::utils::grid_to_string;
+use super::movegen::*;
 
-use super::*;
-
+#[derive(Debug, PartialEq, Eq)]
 pub struct Board {
     pub state: [Piece; 64],
     pub pieces: [BitBoard; 12],
@@ -20,62 +16,84 @@ pub struct Board {
     pub captured_pieces_stack: Vec<Piece>,
     pub en_passant_stack: Vec<BitBoard>,
     pub castling_rights_stack: Vec<CastlingRights>,
+    pub half_move_clock: usize,
+    pub full_move_number: usize,
+}
+
+impl Default for Board {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Board {
     #[allow(dead_code)]
     #[rustfmt::skip]
-    pub fn new(empty: bool) -> Self {
-        if empty {
-            Board {
-                state: [Piece::EMPTY; 64],
-                pieces: [BitBoard(masks::EMPTY); 12],
-                occupancy: [BitBoard(masks::EMPTY); 2],
-                color_to_move: Color::WHITE,
-                en_passant: BitBoard(masks::EMPTY),
-                castling_rights: CastlingRights::NONE,
-                captured_pieces_stack: Vec::new(),
-                en_passant_stack: Vec::new(),
-                castling_rights_stack: Vec::new(),
-            }
-        } else {
-            Board {
-                state: [
-                    Piece::WR, Piece::WN, Piece::WB, Piece::WQ, Piece::WK, Piece::WB, Piece::WN, Piece::WR,
-                    Piece::WP, Piece::WP, Piece::WP, Piece::WP, Piece::WP, Piece::WP, Piece::WP, Piece::WP,
-                    Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY,
-                    Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY,
-                    Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY,
-                    Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY,
-                    Piece::BP, Piece::BP, Piece::BP, Piece::BP, Piece::BP, Piece::BP, Piece::BP, Piece::BP,
-                    Piece::BR, Piece::BN, Piece::BB, Piece::BQ, Piece::BK, Piece::BB, Piece::BN, Piece::BR,
-                ],
-                pieces: [
-                    BitBoard(0x0000_0000_0000_ff00),
-                    BitBoard(0x0000_0000_0000_0042),
-                    BitBoard(0x0000_0000_0000_0024),
-                    BitBoard(0x0000_0000_0000_0081),
-                    BitBoard(0x0000_0000_0000_0008),
-                    BitBoard(0x0000_0000_0000_0010),
-                    BitBoard(0x00ff_0000_0000_0000),
-                    BitBoard(0x4200_0000_0000_0000),
-                    BitBoard(0x2400_0000_0000_0000),
-                    BitBoard(0x8100_0000_0000_0000),
-                    BitBoard(0x0800_0000_0000_0000),
-                    BitBoard(0x1000_0000_0000_0000),
-                ],
-                occupancy: [
-                    BitBoard(0x0000_0000_0000_ffff),
-                    BitBoard(0xffff_0000_0000_0000),
-                ],
-                color_to_move: Color::WHITE,
-                en_passant: BitBoard(masks::EMPTY),
-                castling_rights: CastlingRights::ALL,
-                captured_pieces_stack: Vec::with_capacity(16),
-                en_passant_stack: Vec::with_capacity(16),
-                castling_rights_stack: Vec::with_capacity(16),
-            }
+    pub fn new() -> Self {
+        Board {
+            state: [
+                Piece::WR, Piece::WN, Piece::WB, Piece::WQ, Piece::WK, Piece::WB, Piece::WN, Piece::WR,
+                Piece::WP, Piece::WP, Piece::WP, Piece::WP, Piece::WP, Piece::WP, Piece::WP, Piece::WP,
+                Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY,
+                Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY,
+                Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY,
+                Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY, Piece::EMPTY,
+                Piece::BP, Piece::BP, Piece::BP, Piece::BP, Piece::BP, Piece::BP, Piece::BP, Piece::BP,
+                Piece::BR, Piece::BN, Piece::BB, Piece::BQ, Piece::BK, Piece::BB, Piece::BN, Piece::BR,
+            ],
+            pieces: [
+                BitBoard(0x0000_0000_0000_ff00),
+                BitBoard(0x0000_0000_0000_0042),
+                BitBoard(0x0000_0000_0000_0024),
+                BitBoard(0x0000_0000_0000_0081),
+                BitBoard(0x0000_0000_0000_0008),
+                BitBoard(0x0000_0000_0000_0010),
+                BitBoard(0x00ff_0000_0000_0000),
+                BitBoard(0x4200_0000_0000_0000),
+                BitBoard(0x2400_0000_0000_0000),
+                BitBoard(0x8100_0000_0000_0000),
+                BitBoard(0x0800_0000_0000_0000),
+                BitBoard(0x1000_0000_0000_0000),
+            ],
+            occupancy: [
+                BitBoard(0x0000_0000_0000_ffff),
+                BitBoard(0xffff_0000_0000_0000),
+            ],
+            color_to_move: Color::WHITE,
+            en_passant: BitBoard(masks::EMPTY),
+            castling_rights: CastlingRights::ALL,
+            captured_pieces_stack: Vec::with_capacity(16),
+            en_passant_stack: Vec::with_capacity(16),
+            castling_rights_stack: Vec::with_capacity(16),
+            half_move_clock: 0,
+            full_move_number: 1,
         }
+    }
+
+    pub fn new_empty() -> Self {
+        Board {
+            state: [Piece::EMPTY; 64],
+            pieces: [BitBoard(masks::EMPTY); 12],
+            occupancy: [BitBoard(masks::EMPTY); 2],
+            color_to_move: Color::WHITE,
+            en_passant: BitBoard(masks::EMPTY),
+            castling_rights: CastlingRights::NONE,
+            captured_pieces_stack: Vec::with_capacity(16),
+            en_passant_stack: Vec::with_capacity(16),
+            castling_rights_stack: Vec::with_capacity(16),
+            half_move_clock: 0,
+            full_move_number: 0,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn from(fen: &str) -> Self {
+        fen::fen_to_board(fen).unwrap()
+    }
+
+    #[allow(dead_code)]
+    pub fn to_fen(&self) -> String {
+        fen::board_to_fen(self)
     }
 
     #[allow(dead_code)]
@@ -302,7 +320,7 @@ impl Board {
     }
 
     #[allow(dead_code)]
-    fn add_piece_to_square(&mut self, piece: Piece, square: Square) {
+    pub fn add_piece_to_square(&mut self, piece: Piece, square: Square) {
         let color = piece.color();
 
         self.pieces[piece.to_usize()] |= BitBoard::new(square);
@@ -311,7 +329,7 @@ impl Board {
     }
 
     #[allow(dead_code)]
-    fn remove_piece_from_square(&mut self, piece: Piece, square: Square) {
+    pub fn remove_piece_from_square(&mut self, piece: Piece, square: Square) {
         let color = piece.color();
 
         self.pieces[piece.to_usize()] &= !BitBoard::new(square);
@@ -320,7 +338,7 @@ impl Board {
     }
 
     #[allow(dead_code)]
-    fn move_piece(&mut self, from: Square, to: Square, piece: Piece) {
+    pub fn move_piece(&mut self, from: Square, to: Square, piece: Piece) {
         let color = piece.color();
 
         self.pieces[piece.to_usize()] ^= BitBoard::new(from) | BitBoard::new(to);

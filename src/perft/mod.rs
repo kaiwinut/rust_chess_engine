@@ -1,11 +1,11 @@
 #![allow(clippy::uninit_assumed_init)]
 
-use super::core::movegen::board::*;
 use super::core::movegen::movescan::*;
+use super::core::board::*;
 use std::mem::MaybeUninit;
 
 pub fn run(depth: u8) -> u32 {
-    let mut board = Board::new(false);
+    let mut board = Board::new();
     let color = board.color_to_move;
 
     search_depth(depth, depth, &mut board, color)

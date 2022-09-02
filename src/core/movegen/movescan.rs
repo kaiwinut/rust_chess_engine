@@ -1,8 +1,8 @@
-use crate::core::{masks, square, BitBoard, Square};
 use bitflags::bitflags;
 use std::fmt;
 
-use super::board::*;
+use crate::core::{masks, square, BitBoard, Square};
+use crate::core::board::*;
 use super::*;
 
 #[derive(Clone, Copy)]

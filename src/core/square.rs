@@ -12,6 +12,21 @@ impl Square {
     }
 
     #[allow(dead_code)]
+    pub fn from_string(string: &str) -> Option<Self> {
+        let chars: Vec<char> = string.chars().collect();
+        let file = chars[0];
+        let rank = chars[1];
+
+        if ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].contains(&file)
+            && ['1', '2', '3', '4', '5', '6', '7', '8'].contains(&rank)
+        {
+            Some(Square(file as u8 - b'a' + 8 * (rank as u8 - b'1')))
+        } else {
+            None
+        }
+    }
+
+    #[allow(dead_code)]
     pub fn file(&self) -> u8 {
         self.0 % 8
     }
@@ -254,5 +269,11 @@ mod tests {
 
         assert_eq!(Square::from(file1, rank1), Some(A6));
         assert_eq!(Square::from(file2, rank1), None);
+    }
+
+    #[test]
+    fn test_square_from_string() {
+        assert_eq!(Square::from_string("d4"), Some(D4));
+        assert_eq!(Square::from_string("e5"), Some(E5));
     }
 }

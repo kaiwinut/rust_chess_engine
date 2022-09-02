@@ -35,20 +35,20 @@ impl fmt::Display for Move {
         write!(
             f,
             "{} ({:?})",
-            self.from().as_string().to_string() + self.to().as_string(), self.flags()
+            self.from().as_string().to_string() + self.to().as_string(),
+            self.flags()
         )
     }
 }
 
 pub fn scan_piece_moves(
     board: &Board,
-    color: Color,
     piece: Piece,
     moves: &mut [Move],
     mut index: usize,
 ) -> usize {
     let mut piece_bb = board.pieces[piece.to_usize()];
-    let enemy = color.enemy();
+    let enemy = piece.color().enemy();
 
     while piece_bb != BitBoard(masks::EMPTY) {
         let from_bb = piece_bb.lsb();
@@ -64,7 +64,7 @@ pub fn scan_piece_moves(
             Piece::WQ | Piece::BQ => get_queen_attacks(from_square, all_occupancy),
             Piece::WK | Piece::BK => get_king_attacks(from_square),
             _ => panic!("Invalid piece when getting moves, piece : {}", piece),
-        } & !board.occupancy[color.to_usize()];
+        } & !board.occupancy[piece.color().to_usize()];
 
         while piece_moves != BitBoard(masks::EMPTY) {
             let to_bb = piece_moves.lsb();
@@ -186,33 +186,20 @@ pub fn scan_pawn_diagonal_attacks(
     };
 
     let shift = if is_left ^ is_white { 9 } else { 7 };
+    let not_on_file = !BitBoard(if is_left {
+        masks::FILE_A
+    } else {
+        masks::FILE_H
+    });
 
     let mut pawn_moves = match color {
-        Color::WHITE => {
-            ((piece_bb
-                & !BitBoard(if is_left {
-                    masks::FILE_A
-                } else {
-                    masks::FILE_H
-                }))
-                << shift as u8)
-                & board.occupancy[Color::BLACK.to_usize()]
-        }
-        Color::BLACK => {
-            ((piece_bb
-                & !BitBoard(if is_left {
-                    masks::FILE_A
-                } else {
-                    masks::FILE_H
-                }))
-                >> shift as u8)
-                & board.occupancy[Color::WHITE.to_usize()]
-        }
+        Color::WHITE => (piece_bb & not_on_file) << (shift as u8),
+        Color::BLACK => (piece_bb & not_on_file) >> (shift as u8),
         _ => panic!(
             "Invalid color when getting pawn diagonal attacks, color : {}",
             color
         ),
-    };
+    } & board.occupancy[color.enemy().to_usize()];
 
     let shift = if is_white { shift } else { -shift };
 

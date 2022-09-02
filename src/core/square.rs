@@ -103,7 +103,7 @@ impl Square {
             61 => "f8",
             62 => "g8",
             63 => "h8",
-            _ => "Inavlid"
+            _ => "Inavlid",
         }
     }
 }

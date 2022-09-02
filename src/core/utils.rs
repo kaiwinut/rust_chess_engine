@@ -4,9 +4,9 @@ use std::fmt::Write;
 pub fn grid_to_string<'a, F: Fn(Square) -> &'a str>(char_at: F, raw: Option<u64>) -> String {
     let mut string = match raw {
         Some(bits) => format!("\n{}\n\nBitBoard: {:#018x}\n\n", "=".repeat(28), bits),
-        _ => format!("\n{}\n\n", "=".repeat(28))
+        _ => format!("\n{}\n\n", "=".repeat(28)),
     };
-    
+
     let row_head = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
     for row in (0..8).rev() {

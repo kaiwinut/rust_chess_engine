@@ -107,8 +107,12 @@ impl Board {
         fen::board_to_fen(self)
     }
 
+    pub fn get_moves(&self, moves: &mut [Move]) -> usize {
+        self.get_moves_for_color(moves, self.color_to_move)
+    }
+
     #[allow(dead_code)]
-    pub fn get_moves(&self, moves: &mut [Move], color: Color) -> usize {
+    fn get_moves_for_color(&self, moves: &mut [Move], color: Color) -> usize {
         assert_eq!(self.color_to_move, color);
 
         let mut index = 0;
@@ -317,12 +321,61 @@ impl Board {
 
     #[allow(dead_code)]
     pub fn is_king_in_check(&self, color: Color) -> bool {
+        assert_eq!(color.enemy(), self.color_to_move);
         let king_square = if color == Color::WHITE {
             Square(self.pieces[Piece::WK.to_usize()].bit_scan())
         } else {
             Square(self.pieces[Piece::BK.to_usize()].bit_scan())
         };
         self.is_sqaure_attacked(king_square, color)
+    }
+
+    #[allow(dead_code)]
+    pub fn all_occupancy(&self) -> BitBoard {
+        self.occupancy[Color::WHITE.to_usize()] | self.occupancy[Color::BLACK.to_usize()]
+    }
+
+    #[allow(dead_code)]
+    pub fn are_squares_empty(&self, squares: &[Square]) -> bool {
+        (self.all_occupancy() & BitBoard::from_squares(squares)).is_empty()
+    }
+
+    #[allow(dead_code)]
+    pub fn can_castle_short(&self) -> bool {
+        self.can_castle_short_for_color(self.color_to_move)
+    }
+
+    #[allow(dead_code)]
+    pub fn can_castle_long(&self) -> bool {
+        self.can_castle_long_for_color(self.color_to_move)
+    }
+
+    #[allow(dead_code)]
+    fn can_castle_short_for_color(&self, color: Color) -> bool {
+        assert_eq!(color, self.color_to_move);
+        match color {
+            Color::WHITE => self
+                .castling_rights
+                .contains(CastlingRights::WHITE_SHORT_CASTLE),
+            Color::BLACK => self
+                .castling_rights
+                .contains(CastlingRights::BLACK_SHORT_CASTLE),
+            _ => panic!("Invalid color when checking can castle short"),
+        }
+    }
+
+    #[allow(dead_code)]
+    fn can_castle_long_for_color(&self, color: Color) -> bool {
+        assert_eq!(color, self.color_to_move);
+        match color {
+            Color::WHITE => self
+                .castling_rights
+                .contains(CastlingRights::WHITE_LONG_CASTLE),
+            Color::BLACK => self
+                .castling_rights
+                .contains(CastlingRights::BLACK_LONG_CASTLE),
+            _ => panic!("Invalid color when checking can castle long"),
+        }
     }
 
     #[allow(dead_code)]
@@ -369,7 +422,7 @@ impl Board {
     }
 
     #[allow(dead_code)]
-    pub fn is_sqaure_attacked(&self, square: Square, color: Color) -> bool {
+    fn is_sqaure_attacked(&self, square: Square, color: Color) -> bool {
         let enemy = color.enemy();
         let enemy_rook = if enemy == Color::WHITE {
             Piece::WR.to_usize()

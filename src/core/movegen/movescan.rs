@@ -16,8 +16,7 @@ pub fn scan_piece_moves(
         let from_square = Square(from_bb.bit_scan());
         piece_bb = piece_bb.pop_lsb();
 
-        let all_occupancy =
-            board.occupancy[Color::WHITE.to_usize()] | board.occupancy[Color::BLACK.to_usize()];
+        let all_occupancy = board.all_occupancy();
         let mut piece_moves = match piece {
             Piece::WN | Piece::BN => get_knight_attacks(from_square),
             Piece::WB | Piece::BB => get_bishop_attacks(from_square, all_occupancy),
@@ -45,77 +44,25 @@ pub fn scan_piece_moves(
 
         match piece {
             Piece::WK => {
-                let can_short_castle = board
-                    .castling_rights
-                    .contains(CastlingRights::WHITE_SHORT_CASTLE);
-                let can_long_castle = board
-                    .castling_rights
-                    .contains(CastlingRights::WHITE_LONG_CASTLE);
-
-                if can_short_castle
-                    && (all_occupancy & BitBoard::from_squares(&[square::F1, square::G1]))
-                        .is_empty()
-                {
-                    let is_rook_exist = board.piece_at_square(square::H1) == Piece::WR;
-                    let is_in_attack = board
-                        .are_squares_attacked(&[square::E1, square::F1, square::G1], Color::WHITE);
-
-                    if !is_in_attack && is_rook_exist {
-                        moves[index] = Move::new(square::E1, square::F1, MoveFlags::SHORT_CASTLE);
-                        index += 1;
-                    }
+                if is_king_side_castle_possible(board, Color::WHITE) {
+                    moves[index] = Move::new(square::E1, square::F1, MoveFlags::SHORT_CASTLE);
+                    index += 1;
                 }
 
-                if can_long_castle
-                    && (all_occupancy
-                        & BitBoard::from_squares(&[square::D1, square::C1, square::B1]))
-                    .is_empty()
-                {
-                    let is_rook_exist = board.piece_at_square(square::A1) == Piece::WR;
-                    let is_in_attack = board
-                        .are_squares_attacked(&[square::E1, square::D1, square::C1], Color::WHITE);
-
-                    if !is_in_attack && is_rook_exist {
-                        moves[index] = Move::new(square::E1, square::C1, MoveFlags::LONG_CASTLE);
-                        index += 1;
-                    }
+                if is_queen_side_castle_possible(board, Color::WHITE) {
+                    moves[index] = Move::new(square::E1, square::C1, MoveFlags::LONG_CASTLE);
+                    index += 1;
                 }
             }
             Piece::BK => {
-                let can_short_castle = board
-                    .castling_rights
-                    .contains(CastlingRights::BLACK_SHORT_CASTLE);
-                let can_long_castle = board
-                    .castling_rights
-                    .contains(CastlingRights::BLACK_LONG_CASTLE);
-
-                if can_short_castle
-                    && (all_occupancy & BitBoard::from_squares(&[square::F8, square::G8]))
-                        .is_empty()
-                {
-                    let is_rook_exist = board.piece_at_square(square::H8) == Piece::BR;
-                    let is_in_attack = board
-                        .are_squares_attacked(&[square::E8, square::F8, square::G8], Color::BLACK);
-
-                    if !is_in_attack && is_rook_exist {
-                        moves[index] = Move::new(square::E8, square::F8, MoveFlags::SHORT_CASTLE);
-                        index += 1;
-                    }
+                if is_king_side_castle_possible(board, Color::BLACK) {
+                    moves[index] = Move::new(square::E8, square::F8, MoveFlags::SHORT_CASTLE);
+                    index += 1;
                 }
 
-                if can_long_castle
-                    && (all_occupancy
-                        & BitBoard::from_squares(&[square::D8, square::C8, square::B8]))
-                    .is_empty()
-                {
-                    let is_rook_exist = board.piece_at_square(square::A8) == Piece::BR;
-                    let is_in_attack = board
-                        .are_squares_attacked(&[square::E8, square::D8, square::C8], Color::BLACK);
-
-                    if !is_in_attack && is_rook_exist {
-                        moves[index] = Move::new(square::E8, square::C8, MoveFlags::LONG_CASTLE);
-                        index += 1;
-                    }
+                if is_queen_side_castle_possible(board, Color::BLACK) {
+                    moves[index] = Move::new(square::E8, square::C8, MoveFlags::LONG_CASTLE);
+                    index += 1;
                 }
             }
             _ => {}
@@ -141,13 +88,13 @@ pub fn scan_pawn_single_push(
     mut index: usize,
 ) -> usize {
     let is_white = color == Color::WHITE;
+    let all_occupancy = board.all_occupancy();
+
     let piece_bb = if is_white {
         board.pieces[Piece::WP.to_usize()]
     } else {
         board.pieces[Piece::BP.to_usize()]
     };
-    let all_occupancy =
-        board.occupancy[Color::WHITE.to_usize()] | board.occupancy[Color::BLACK.to_usize()];
 
     let enemy_backrank = if is_white {
         BitBoard::RANK_8
@@ -199,13 +146,13 @@ pub fn scan_pawn_double_push(
     mut index: usize,
 ) -> usize {
     let is_white = color == Color::WHITE;
+    let all_occupancy = board.all_occupancy();
+    
     let piece_bb = if is_white {
         board.pieces[Piece::WP.to_usize()]
     } else {
         board.pieces[Piece::BP.to_usize()]
     };
-    let all_occupancy =
-        board.occupancy[Color::WHITE.to_usize()] | board.occupancy[Color::BLACK.to_usize()];
 
     let mut pawn_moves = match color {
         Color::WHITE => (((piece_bb & BitBoard::RANK_2) << 8u8) & !all_occupancy) << 8u8,
@@ -309,4 +256,48 @@ pub fn scan_pawn_diagonal_attacks(
     }
 
     index
+}
+
+fn is_king_side_castle_possible(board: &Board, color: Color) -> bool {
+    let is_white = color == Color::WHITE;
+    let can_short_castle = board.can_castle_short();
+    let is_king_side_clear = board.are_squares_empty(if is_white {
+        &[square::F1, square::G1]
+    } else {
+        &[square::F8, square::G8]
+    });
+    let is_king_side_in_attack = if is_white {
+        board.are_squares_attacked(&[square::E1, square::F1, square::G1], Color::WHITE)
+    } else {
+        board.are_squares_attacked(&[square::E8, square::F8, square::G8], Color::BLACK)
+    };
+    let is_king_side_rook_exist = if is_white {
+        board.piece_at_square(square::H1) == Piece::WR
+    } else {
+        board.piece_at_square(square::H8) == Piece::BR
+    };
+
+    can_short_castle && is_king_side_clear && !is_king_side_in_attack && is_king_side_rook_exist
+}
+
+fn is_queen_side_castle_possible(board: &Board, color: Color) -> bool {
+    let is_white = color == Color::WHITE;
+    let can_long_castle = board.can_castle_long();
+    let is_queen_side_clear = board.are_squares_empty(if is_white {
+        &[square::D1, square::C1, square::B1]
+    } else {
+        &[square::D8, square::C8, square::B8]
+    });
+    let is_queen_side_in_attack = if is_white {
+        board.are_squares_attacked(&[square::E1, square::D1, square::C1], Color::WHITE)
+    } else {
+        board.are_squares_attacked(&[square::E8, square::D8, square::C8], Color::BLACK)
+    };
+    let is_queen_side_rook_exist = if is_white {
+        board.piece_at_square(square::A1) == Piece::WR
+    } else {
+        board.piece_at_square(square::A8) == Piece::BR
+    };
+
+    can_long_castle && is_queen_side_clear && !is_queen_side_in_attack && is_queen_side_rook_exist
 }

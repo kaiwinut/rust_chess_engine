@@ -11,7 +11,7 @@ pub fn run(depth: u8, board: &mut Board) -> Result<usize, &'static str> {
 
 pub fn run_divided(depth: u8, board: &mut Board) -> Result<Vec<(String, usize)>, &'static str> {
     let mut moves: [Move; 218] = unsafe { MaybeUninit::uninit().assume_init() };
-    let moves_count = board.get_moves(&mut moves, board.color_to_move);
+    let moves_count = board.get_moves(&mut moves);
 
     let mut result = Vec::<(String, usize)>::new();
     for m in moves.iter().take(moves_count) {
@@ -39,7 +39,7 @@ fn run_depth(depth: u8, max_depth: u8, board: &mut Board, color: Color) -> usize
     }
 
     let mut moves: [Move; 218] = unsafe { MaybeUninit::uninit().assume_init() };
-    let moves_count = board.get_moves(&mut moves, color);
+    let moves_count = board.get_moves(&mut moves);
 
     let mut count = 0;
 

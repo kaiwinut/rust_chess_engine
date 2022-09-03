@@ -1,7 +1,6 @@
 #![allow(clippy::uninit_assumed_init)]
 
-use super::core::movegen::movescan::*;
-use super::core::{Board, Color};
+use super::core::{Board, Color, Move};
 use std::mem::MaybeUninit;
 
 pub fn run(depth: u8, board: &mut Board) -> Result<usize, &'static str> {

@@ -1,9 +1,9 @@
 use bitflags::bitflags;
 use std::fmt;
 
-use super::movegen::*;
+use super::movegen::{self, movescan, Move, MoveFlags};
 use super::utils::grid_to_string;
-use super::{fen, masks, square, BitBoard, Square};
+use super::{fen, square, BitBoard, Square};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Board {
@@ -42,25 +42,25 @@ impl Board {
                 Piece::BR, Piece::BN, Piece::BB, Piece::BQ, Piece::BK, Piece::BB, Piece::BN, Piece::BR,
             ],
             pieces: [
-                BitBoard(0x0000_0000_0000_ff00),
-                BitBoard(0x0000_0000_0000_0042),
-                BitBoard(0x0000_0000_0000_0024),
-                BitBoard(0x0000_0000_0000_0081),
-                BitBoard(0x0000_0000_0000_0008),
-                BitBoard(0x0000_0000_0000_0010),
-                BitBoard(0x00ff_0000_0000_0000),
-                BitBoard(0x4200_0000_0000_0000),
-                BitBoard(0x2400_0000_0000_0000),
-                BitBoard(0x8100_0000_0000_0000),
-                BitBoard(0x0800_0000_0000_0000),
-                BitBoard(0x1000_0000_0000_0000),
+                BitBoard::WHITE_PAWN_INIT,
+                BitBoard::WHITE_KNIGHT_INIT,
+                BitBoard::WHITE_BISHOP_INIT,
+                BitBoard::WHITE_ROOK_INIT,
+                BitBoard::WHITE_QUEEN_INIT,
+                BitBoard::WHITE_KING_INIT,
+                BitBoard::BLACK_PAWN_INIT,
+                BitBoard::BLACK_KNIGHT_INIT,
+                BitBoard::BLACK_BISHOP_INIT,
+                BitBoard::BLACK_ROOK_INIT,
+                BitBoard::BLACK_QUEEN_INIT,
+                BitBoard::BLACK_KING_INIT,
             ],
             occupancy: [
-                BitBoard(0x0000_0000_0000_ffff),
-                BitBoard(0xffff_0000_0000_0000),
+                BitBoard::WHITE_OCCUPANY_INIT,
+                BitBoard::BLACK_OCCUPANY_INIT,
             ],
             color_to_move: Color::WHITE,
-            en_passant: BitBoard(masks::EMPTY),
+            en_passant: BitBoard::EMPTY,
             castling_rights: CastlingRights::ALL,
             captured_pieces_stack: Vec::with_capacity(16),
             en_passant_stack: Vec::with_capacity(16),
@@ -73,10 +73,10 @@ impl Board {
     pub fn new_empty() -> Self {
         Board {
             state: [Piece::EMPTY; 64],
-            pieces: [BitBoard(masks::EMPTY); 12],
-            occupancy: [BitBoard(masks::EMPTY); 2],
+            pieces: [BitBoard::EMPTY; 12],
+            occupancy: [BitBoard::EMPTY; 2],
             color_to_move: Color::WHITE,
-            en_passant: BitBoard(masks::EMPTY),
+            en_passant: BitBoard::EMPTY,
             castling_rights: CastlingRights::NONE,
             captured_pieces_stack: Vec::with_capacity(16),
             en_passant_stack: Vec::with_capacity(16),
@@ -113,20 +113,20 @@ impl Board {
 
         let mut index = 0;
 
-        index = scan_pawn_moves(self, color, moves, index);
+        index = movescan::scan_pawn_moves(self, color, moves, index);
 
         if color == Color::WHITE {
-            index = scan_piece_moves(self, Piece::WN, moves, index);
-            index = scan_piece_moves(self, Piece::WB, moves, index);
-            index = scan_piece_moves(self, Piece::WR, moves, index);
-            index = scan_piece_moves(self, Piece::WQ, moves, index);
-            index = scan_piece_moves(self, Piece::WK, moves, index);
+            index = movescan::scan_piece_moves(self, Piece::WN, moves, index);
+            index = movescan::scan_piece_moves(self, Piece::WB, moves, index);
+            index = movescan::scan_piece_moves(self, Piece::WR, moves, index);
+            index = movescan::scan_piece_moves(self, Piece::WQ, moves, index);
+            index = movescan::scan_piece_moves(self, Piece::WK, moves, index);
         } else {
-            index = scan_piece_moves(self, Piece::BN, moves, index);
-            index = scan_piece_moves(self, Piece::BB, moves, index);
-            index = scan_piece_moves(self, Piece::BR, moves, index);
-            index = scan_piece_moves(self, Piece::BQ, moves, index);
-            index = scan_piece_moves(self, Piece::BK, moves, index);
+            index = movescan::scan_piece_moves(self, Piece::BN, moves, index);
+            index = movescan::scan_piece_moves(self, Piece::BB, moves, index);
+            index = movescan::scan_piece_moves(self, Piece::BR, moves, index);
+            index = movescan::scan_piece_moves(self, Piece::BQ, moves, index);
+            index = movescan::scan_piece_moves(self, Piece::BK, moves, index);
         }
 
         index
@@ -142,7 +142,7 @@ impl Board {
 
         self.castling_rights_stack.push(self.castling_rights);
         self.en_passant_stack.push(self.en_passant);
-        self.en_passant = BitBoard(masks::EMPTY);
+        self.en_passant = BitBoard::EMPTY;
 
         match flags {
             MoveFlags::QUIET => {
@@ -359,6 +359,16 @@ impl Board {
     }
 
     #[allow(dead_code)]
+    pub fn are_squares_attacked(&self, squares: &[Square], color: Color) -> bool {
+        for sq in squares {
+            if self.is_sqaure_attacked(*sq, color) {
+                return true;
+            }
+        }
+        false
+    }
+
+    #[allow(dead_code)]
     pub fn is_sqaure_attacked(&self, square: Square, color: Color) -> bool {
         let enemy = color.enemy();
         let enemy_rook = if enemy == Color::WHITE {
@@ -395,26 +405,26 @@ impl Board {
         let all_occupancy =
             self.occupancy[Color::WHITE.to_usize()] | self.occupancy[Color::BLACK.to_usize()];
 
-        if (get_rook_attacks(square, all_occupancy)
+        if (movegen::get_rook_attacks(square, all_occupancy)
             & (self.pieces[enemy_rook] | self.pieces[enemy_queen]))
-            != BitBoard(masks::EMPTY)
+            .is_not_empty()
         {
             return true;
         }
-        if (get_bishop_attacks(square, all_occupancy)
+        if (movegen::get_bishop_attacks(square, all_occupancy)
             & (self.pieces[enemy_bishop] | self.pieces[enemy_queen]))
-            != BitBoard(masks::EMPTY)
+            .is_not_empty()
         {
             return true;
         }
-        if (get_knight_attacks(square) & self.pieces[enemy_knight]) != BitBoard(masks::EMPTY) {
+        if (movegen::get_knight_attacks(square) & self.pieces[enemy_knight]).is_not_empty() {
             return true;
         }
-        if (get_king_attacks(square) & self.pieces[enemy_king]) != BitBoard(masks::EMPTY) {
+        if (movegen::get_king_attacks(square) & self.pieces[enemy_king]).is_not_empty() {
             return true;
         }
 
-        let potential_attacking_pawns = get_king_attacks(square) & self.pieces[enemy_pawn];
+        let potential_attacking_pawns = movegen::get_king_attacks(square) & self.pieces[enemy_pawn];
         let attacking_pawns = match enemy {
             Color::WHITE => {
                 BitBoard::new(square)
@@ -430,7 +440,7 @@ impl Board {
             ),
         };
 
-        if attacking_pawns != BitBoard(masks::EMPTY) {
+        if attacking_pawns.is_not_empty() {
             return true;
         }
 

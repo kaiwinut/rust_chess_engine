@@ -1,10 +1,12 @@
+mod constants;
+pub mod magic;
+pub mod r#move;
 pub mod movescan;
 pub mod non_sliding;
 pub mod sliding;
-pub mod magic;
 
-pub use movescan::{scan_pawn_moves, scan_piece_moves, Move, MoveFlags};
 pub use non_sliding::*;
+pub use r#move::{Move, MoveFlags};
 pub use sliding::*;
 
 pub fn init() {

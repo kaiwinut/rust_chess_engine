@@ -1,119 +1,6 @@
-#![allow(clippy::uninit_assumed_init)]
-
-use bitflags::bitflags;
-use std::fmt;
-use std::mem::MaybeUninit;
-
 use super::*;
 use crate::core::board::*;
-use crate::core::{masks, square, BitBoard, Square};
-
-#[derive(Clone, Copy)]
-pub struct Move(pub u16);
-
-impl Move {
-    #[allow(dead_code)]
-    pub fn new(from: Square, to: Square, flags: MoveFlags) -> Self {
-        Move(((flags.bits as u16) << 12) | (to.to_u16() << 6) | from.to_u16())
-    }
-
-    #[allow(dead_code)]
-    pub fn from(&self) -> Square {
-        Square((self.0 & 63) as u8)
-    }
-
-    #[allow(dead_code)]
-    pub fn to(&self) -> Square {
-        Square(((self.0 >> 6) & 63) as u8)
-    }
-
-    #[allow(dead_code)]
-    pub fn flags(&self) -> MoveFlags {
-        unsafe { MoveFlags::from_bits_unchecked(((self.0 >> 12) & 15) as u8) }
-    }
-
-    #[allow(dead_code)]
-    pub fn promotion(&self, is_white: bool) -> Piece {
-        match self.flags() {
-            MoveFlags::PROMOTE_TO_KNIGHT | MoveFlags::PROMOTE_CAPTURE_TO_KNIGHT => {
-                if is_white {
-                    Piece::WN
-                } else {
-                    Piece::BN
-                }
-            }
-            MoveFlags::PROMOTE_TO_BISHOP | MoveFlags::PROMOTE_CAPTURE_TO_BISHOP => {
-                if is_white {
-                    Piece::WB
-                } else {
-                    Piece::BB
-                }
-            }
-            MoveFlags::PROMOTE_TO_ROOK | MoveFlags::PROMOTE_CAPTURE_TO_ROOK => {
-                if is_white {
-                    Piece::WR
-                } else {
-                    Piece::BR
-                }
-            }
-            MoveFlags::PROMOTE_TO_QUEEN | MoveFlags::PROMOTE_CAPTURE_TO_QUEEN => {
-                if is_white {
-                    Piece::WQ
-                } else {
-                    Piece::BQ
-                }
-            }
-            _ => panic!("Move is not promotion, flag : {:?}", self.flags()),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn as_string(&self) -> String {
-        let from = self.from();
-        let to = self.to();
-
-        let string = vec![
-            from.as_string(),
-            to.as_string(),
-        ];
-
-        string.into_iter().collect()
-    }
-
-    #[allow(dead_code)]
-    pub fn from_string(string: &str, board: &Board) -> Result<Move, &'static str> {
-        if string.len() < 4 {
-            return Err("Invalid move: move string is too short");
-        }
-
-        let from = Square::from_string(&string[0..2]);
-        let to = Square::from_string(&string[2..4]);
-
-        let mut moves : [Move; 218] = unsafe {
-            MaybeUninit::uninit().assume_init()
-        };
-        let moves_count = board.get_moves(&mut moves, board.color_to_move);
-
-        for m in moves.iter().take(moves_count) {
-            if m.from() == from.unwrap() && m.to() == to.unwrap() {
-                return Ok(*m);
-            }
-        }
-
-        Err("Invalid move: move not found in position")
-    }
-}
-
-impl fmt::Display for Move {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{} ({:?})",
-            self.from().as_string().to_string() + self.to().as_string(),
-            self.flags()
-        )
-    }
-}
+use crate::core::{square, BitBoard, Square};
 
 pub fn scan_piece_moves(
     board: &Board,
@@ -124,7 +11,7 @@ pub fn scan_piece_moves(
     let mut piece_bb = board.pieces[piece.to_usize()];
     let enemy = piece.color().enemy();
 
-    while piece_bb != BitBoard(masks::EMPTY) {
+    while piece_bb.is_not_empty() {
         let from_bb = piece_bb.lsb();
         let from_square = Square(from_bb.bit_scan());
         piece_bb = piece_bb.pop_lsb();
@@ -140,12 +27,12 @@ pub fn scan_piece_moves(
             _ => panic!("Invalid piece when getting moves, piece : {}", piece),
         } & !board.occupancy[piece.color().to_usize()];
 
-        while piece_moves != BitBoard(masks::EMPTY) {
+        while piece_moves.is_not_empty() {
             let to_bb = piece_moves.lsb();
             let to_square = Square(to_bb.bit_scan());
             piece_moves = piece_moves.pop_lsb();
 
-            let is_capture = (to_bb & board.occupancy[enemy.to_usize()]) != BitBoard(masks::EMPTY);
+            let is_capture = (to_bb & board.occupancy[enemy.to_usize()]).is_not_empty();
             let flags = if is_capture {
                 MoveFlags::CAPTURE
             } else {
@@ -166,13 +53,12 @@ pub fn scan_piece_moves(
                     .contains(CastlingRights::WHITE_LONG_CASTLE);
 
                 if can_short_castle
-                    && (all_occupancy & (BitBoard::new(square::F1) | BitBoard::new(square::G1)))
-                        == BitBoard(masks::EMPTY)
+                    && (all_occupancy & BitBoard::from_squares(&[square::F1, square::G1]))
+                        .is_empty()
                 {
                     let is_rook_exist = board.piece_at_square(square::H1) == Piece::WR;
-                    let is_in_attack = board.is_sqaure_attacked(square::E1, Color::WHITE)
-                        || board.is_sqaure_attacked(square::F1, Color::WHITE)
-                        || board.is_sqaure_attacked(square::G1, Color::WHITE);
+                    let is_in_attack = board
+                        .are_squares_attacked(&[square::E1, square::F1, square::G1], Color::WHITE);
 
                     if !is_in_attack && is_rook_exist {
                         moves[index] = Move::new(square::E1, square::F1, MoveFlags::SHORT_CASTLE);
@@ -182,15 +68,12 @@ pub fn scan_piece_moves(
 
                 if can_long_castle
                     && (all_occupancy
-                        & (BitBoard::new(square::D1)
-                            | BitBoard::new(square::C1)
-                            | BitBoard::new(square::B1)))
-                        == BitBoard(masks::EMPTY)
+                        & BitBoard::from_squares(&[square::D1, square::C1, square::B1]))
+                    .is_empty()
                 {
                     let is_rook_exist = board.piece_at_square(square::A1) == Piece::WR;
-                    let is_in_attack = board.is_sqaure_attacked(square::E1, Color::WHITE)
-                        || board.is_sqaure_attacked(square::D1, Color::WHITE)
-                        || board.is_sqaure_attacked(square::C1, Color::WHITE);
+                    let is_in_attack = board
+                        .are_squares_attacked(&[square::E1, square::D1, square::C1], Color::WHITE);
 
                     if !is_in_attack && is_rook_exist {
                         moves[index] = Move::new(square::E1, square::C1, MoveFlags::LONG_CASTLE);
@@ -207,13 +90,12 @@ pub fn scan_piece_moves(
                     .contains(CastlingRights::BLACK_LONG_CASTLE);
 
                 if can_short_castle
-                    && (all_occupancy & (BitBoard::new(square::F8) | BitBoard::new(square::G8)))
-                        == BitBoard(masks::EMPTY)
+                    && (all_occupancy & BitBoard::from_squares(&[square::F8, square::G8]))
+                        .is_empty()
                 {
                     let is_rook_exist = board.piece_at_square(square::H8) == Piece::BR;
-                    let is_in_attack = board.is_sqaure_attacked(square::E8, Color::BLACK)
-                        || board.is_sqaure_attacked(square::F8, Color::BLACK)
-                        || board.is_sqaure_attacked(square::G8, Color::BLACK);
+                    let is_in_attack = board
+                        .are_squares_attacked(&[square::E8, square::F8, square::G8], Color::BLACK);
 
                     if !is_in_attack && is_rook_exist {
                         moves[index] = Move::new(square::E8, square::F8, MoveFlags::SHORT_CASTLE);
@@ -223,15 +105,12 @@ pub fn scan_piece_moves(
 
                 if can_long_castle
                     && (all_occupancy
-                        & (BitBoard::new(square::D8)
-                            | BitBoard::new(square::C8)
-                            | BitBoard::new(square::B8)))
-                        == BitBoard(masks::EMPTY)
+                        & BitBoard::from_squares(&[square::D8, square::C8, square::B8]))
+                    .is_empty()
                 {
                     let is_rook_exist = board.piece_at_square(square::A8) == Piece::BR;
-                    let is_in_attack = board.is_sqaure_attacked(square::E8, Color::BLACK)
-                        || board.is_sqaure_attacked(square::D8, Color::BLACK)
-                        || board.is_sqaure_attacked(square::C8, Color::BLACK);
+                    let is_in_attack = board
+                        .are_squares_attacked(&[square::E8, square::D8, square::C8], Color::BLACK);
 
                     if !is_in_attack && is_rook_exist {
                         moves[index] = Move::new(square::E8, square::C8, MoveFlags::LONG_CASTLE);
@@ -269,12 +148,11 @@ pub fn scan_pawn_single_push(
     };
     let all_occupancy =
         board.occupancy[Color::WHITE.to_usize()] | board.occupancy[Color::BLACK.to_usize()];
-    let shift = if is_white { 8 } else { -8 };
 
     let enemy_backrank = if is_white {
-        BitBoard(masks::RANK_8)
+        BitBoard::RANK_8
     } else {
-        BitBoard(masks::RANK_1)
+        BitBoard::RANK_1
     };
 
     let mut pawn_moves = match color {
@@ -286,13 +164,17 @@ pub fn scan_pawn_single_push(
         ),
     } & !all_occupancy;
 
-    while pawn_moves != BitBoard(masks::EMPTY) {
+    while pawn_moves.is_not_empty() {
         let to_bb = pawn_moves.lsb();
         let to_square = Square(to_bb.bit_scan());
-        let from_square = Square((to_bb.bit_scan() as i8 - shift) as u8);
+        let from_square = if is_white {
+            to_square.south().unwrap()
+        } else {
+            to_square.north().unwrap()
+        };
         pawn_moves = pawn_moves.pop_lsb();
 
-        if to_bb & enemy_backrank != BitBoard(masks::EMPTY) {
+        if (to_bb & enemy_backrank).is_not_empty() {
             moves[index] = Move::new(from_square, to_square, MoveFlags::PROMOTE_TO_KNIGHT);
             index += 1;
             moves[index] = Move::new(from_square, to_square, MoveFlags::PROMOTE_TO_BISHOP);
@@ -324,21 +206,24 @@ pub fn scan_pawn_double_push(
     };
     let all_occupancy =
         board.occupancy[Color::WHITE.to_usize()] | board.occupancy[Color::BLACK.to_usize()];
-    let shift = if is_white { 16 } else { -16 };
 
     let mut pawn_moves = match color {
-        Color::WHITE => (((piece_bb & BitBoard(masks::RANK_2)) << 8u8) & !all_occupancy) << 8u8,
-        Color::BLACK => (((piece_bb & BitBoard(masks::RANK_7)) >> 8u8) & !all_occupancy) >> 8u8,
+        Color::WHITE => (((piece_bb & BitBoard::RANK_2) << 8u8) & !all_occupancy) << 8u8,
+        Color::BLACK => (((piece_bb & BitBoard::RANK_7) >> 8u8) & !all_occupancy) >> 8u8,
         _ => panic!(
             "Invalid color when getting pawn double push moves, color : {}",
             color
         ),
     } & !all_occupancy;
 
-    while pawn_moves != BitBoard(masks::EMPTY) {
+    while pawn_moves.is_not_empty() {
         let to_bb = pawn_moves.lsb();
         let to_square = Square(to_bb.bit_scan());
-        let from_square = Square((to_bb.bit_scan() as i8 - shift) as u8);
+        let from_square = if is_white {
+            to_square.south().unwrap().south().unwrap()
+        } else {
+            to_square.north().unwrap().north().unwrap()
+        };
         pawn_moves = pawn_moves.pop_lsb();
 
         moves[index] = Move::new(from_square, to_square, MoveFlags::DOUBLE_PUSH);
@@ -363,16 +248,16 @@ pub fn scan_pawn_diagonal_attacks(
     };
 
     let shift = if is_left ^ is_white { 9 } else { 7 };
-    let not_on_file = !BitBoard(if is_left {
-        masks::FILE_A
+    let not_on_file = if is_left {
+        !BitBoard::FILE_A
     } else {
-        masks::FILE_H
-    });
+        !BitBoard::FILE_H
+    };
 
     let enemy_backrank = if is_white {
-        BitBoard(masks::RANK_8)
+        BitBoard::RANK_8
     } else {
-        BitBoard(masks::RANK_1)
+        BitBoard::RANK_1
     };
 
     let mut pawn_moves = match color {
@@ -384,15 +269,21 @@ pub fn scan_pawn_diagonal_attacks(
         ),
     } & (board.occupancy[color.enemy().to_usize()] | board.en_passant);
 
-    let shift = if is_white { shift } else { -shift };
-
-    while pawn_moves != BitBoard(masks::EMPTY) {
+    while pawn_moves.is_not_empty() {
         let to_bb = pawn_moves.lsb();
         let to_square = Square(to_bb.bit_scan());
-        let from_square = Square((to_bb.bit_scan() as i8 - shift) as u8);
+        let from_square = if is_white && is_left {
+            to_square.south_east().unwrap()
+        } else if is_white && !is_left {
+            to_square.south_west().unwrap()
+        } else if !is_white && is_left {
+            to_square.north_east().unwrap()
+        } else {
+            to_square.north_west().unwrap()
+        };
         pawn_moves = pawn_moves.pop_lsb();
 
-        if to_bb & enemy_backrank != BitBoard(masks::EMPTY) {
+        if (to_bb & enemy_backrank).is_not_empty() {
             moves[index] = Move::new(from_square, to_square, MoveFlags::PROMOTE_CAPTURE_TO_KNIGHT);
             index += 1;
             moves[index] = Move::new(from_square, to_square, MoveFlags::PROMOTE_CAPTURE_TO_BISHOP);
@@ -402,7 +293,7 @@ pub fn scan_pawn_diagonal_attacks(
             moves[index] = Move::new(from_square, to_square, MoveFlags::PROMOTE_CAPTURE_TO_QUEEN);
             index += 1;
         } else {
-            let is_en_passant = (to_bb & board.en_passant) != BitBoard(masks::EMPTY);
+            let is_en_passant = (to_bb & board.en_passant).is_not_empty();
 
             moves[index] = Move::new(
                 from_square,
@@ -418,25 +309,4 @@ pub fn scan_pawn_diagonal_attacks(
     }
 
     index
-}
-
-bitflags! {
-    pub struct MoveFlags: u8 {
-        const QUIET = 0b0000;
-        const DOUBLE_PUSH = 0b0001;
-        const SHORT_CASTLE = 0b0010;
-        const LONG_CASTLE = 0b0011;
-        const CAPTURE = 0b0100;
-        const EN_PASSANT = 0b0101;
-        const UNDEFINED1 = 0b0110;
-        const UNDEFINED2 = 0b0111;
-        const PROMOTE_TO_KNIGHT = 0b1000;
-        const PROMOTE_TO_BISHOP = 0b1001;
-        const PROMOTE_TO_ROOK = 0b1010;
-        const PROMOTE_TO_QUEEN = 0b1011;
-        const PROMOTE_CAPTURE_TO_KNIGHT = 0b1100;
-        const PROMOTE_CAPTURE_TO_BISHOP = 0b1101;
-        const PROMOTE_CAPTURE_TO_ROOK = 0b1110;
-        const PROMOTE_CAPTURE_TO_QUEEN = 0b1111;
-    }
 }

@@ -2,7 +2,15 @@
 pub struct Square(pub u8);
 
 impl Square {
-    #[allow(dead_code)]
+    const NORTH: i8 = 8;
+    const NORTH_EAST: i8 = 9;
+    const EAST: i8 = 1;
+    const SOUTH_EAST: i8 = -7;
+    const SOUTH: i8 = -8;
+    const SOUTH_WEST: i8 = -9;
+    const WEST: i8 = -1;
+    const NORTH_WEST: i8 = 7;
+
     pub fn from(file: i8, rank: i8) -> Option<Self> {
         if (0..=7).contains(&rank) && (0..=7).contains(&file) {
             Some(Square((rank * 8 + file) as u8))
@@ -11,7 +19,6 @@ impl Square {
         }
     }
 
-    #[allow(dead_code)]
     pub fn from_string(string: &str) -> Option<Self> {
         let chars: Vec<char> = string.chars().collect();
         let file = chars[0];
@@ -26,37 +33,95 @@ impl Square {
         }
     }
 
-    #[allow(dead_code)]
+    pub fn north(&self) -> Option<Square> {
+        if self.rank() < 7 {
+            return self.get_neighbor(Self::NORTH);
+        }
+        None
+    }
+
+    pub fn north_east(&self) -> Option<Square> {
+        if self.rank() < 7 && self.file() < 7 {
+            return self.get_neighbor(Self::NORTH_EAST);
+        }
+        None
+    }
+
+    pub fn east(&self) -> Option<Square> {
+        if self.file() < 7 {
+            return self.get_neighbor(Self::EAST);
+        }
+        None
+    }
+
+    pub fn south_east(&self) -> Option<Square> {
+        if self.rank() > 0 && self.file() < 7 {
+            return self.get_neighbor(Self::SOUTH_EAST);
+        }
+        None
+    }
+
+    pub fn south(&self) -> Option<Square> {
+        if self.rank() > 0 {
+            return self.get_neighbor(Self::SOUTH);
+        }
+        None
+    }
+
+    pub fn south_west(&self) -> Option<Square> {
+        if self.rank() > 0 && self.file() > 0 {
+            return self.get_neighbor(Self::SOUTH_WEST);
+        }
+        None
+    }
+
+    pub fn west(&self) -> Option<Square> {
+        if self.file() > 0 {
+            return self.get_neighbor(Self::WEST);
+        }
+        None
+    }
+
+    pub fn north_west(&self) -> Option<Square> {
+        if self.rank() < 7 && self.file() > 0 {
+            return self.get_neighbor(Self::NORTH_WEST);
+        }
+        None
+    }
+
+    fn get_neighbor(&self, shift: i8) -> Option<Square> {
+        let index = self.0 as i8 + shift;
+        if (0..=63).contains(&(index)) {
+            Some(Square(index as u8))
+        } else {
+            None
+        }
+    }
+
     pub fn file(&self) -> u8 {
         self.0 % 8
     }
 
-    #[allow(dead_code)]
     pub fn rank(&self) -> u8 {
         self.0 / 8
     }
 
-    #[allow(dead_code)]
     pub fn to_u8(self) -> u8 {
         self.0
     }
 
-    #[allow(dead_code)]
     pub fn to_i8(self) -> i8 {
         self.0 as i8
     }
 
-    #[allow(dead_code)]
     pub fn to_u16(self) -> u16 {
         self.0 as u16
     }
 
-    #[allow(dead_code)]
     pub fn to_usize(self) -> usize {
         self.0 as usize
     }
 
-    #[allow(dead_code)]
     pub fn as_string(&self) -> &str {
         match self.0 {
             0 => "a1",

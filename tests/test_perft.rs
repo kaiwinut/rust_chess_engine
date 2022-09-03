@@ -28,8 +28,7 @@ mod perft_tests {
         test_perft_depth_3: 3, 8902,
         test_perft_depth_4: 4, 197281,
         test_perft_depth_5: 5, 4865609,
-        test_perft_depth_6: 6, 119060324,
-        //
+        // test_perft_depth_6: 6, 119060324,
         // test_perft_depth_7: 7, 3195901860,
     }
 }

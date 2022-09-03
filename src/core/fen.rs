@@ -1,5 +1,4 @@
 use super::board::*;
-use super::masks;
 use super::square;
 use super::{BitBoard, Square};
 
@@ -242,7 +241,7 @@ fn castling_rights_to_fen(board: &Board) -> String {
 
 #[allow(dead_code)]
 fn en_passant_to_fen(board: &Board) -> String {
-    if board.en_passant == BitBoard(masks::EMPTY) {
+    if board.en_passant == BitBoard::EMPTY {
         return "-".to_string();
     }
 

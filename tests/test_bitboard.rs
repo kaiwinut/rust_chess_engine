@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod bitboard_tests {
-    use rust_chess_engine::core::{masks, square, BitBoard};
+    use rust_chess_engine::core::{square, BitBoard};
 
     #[test]
     fn test_lsb() {
@@ -11,7 +11,7 @@ mod bitboard_tests {
     #[test]
     fn test_pop_lsb() {
         let bitboard = BitBoard::new(square::D4);
-        assert_eq!(BitBoard(masks::EMPTY), bitboard.pop_lsb());
+        assert_eq!(BitBoard::EMPTY, bitboard.pop_lsb());
     }
 
     #[test]
@@ -24,5 +24,14 @@ mod bitboard_tests {
     fn test_bit_scan() {
         let bitboard = BitBoard::new(square::D4);
         assert_eq!(square::D4.to_u8(), bitboard.bit_scan());
+    }
+
+    #[test]
+    fn test_bitboard_from_squares() {
+        let bitboard = BitBoard::from_squares(&[square::A1, square::A2]);
+        assert_eq!(
+            BitBoard::new(square::A1) | BitBoard::new(square::A2),
+            bitboard
+        );
     }
 }

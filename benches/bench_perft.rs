@@ -6,7 +6,9 @@ use rust_chess_engine::perft;
 fn perft_benchmark(c: &mut Criterion) {
     movegen::init();
 
-    c.bench_function("perft", |b| b.iter(|| perft::run(black_box(4), &mut Board::new()).unwrap()));
+    c.bench_function("perft", |b| {
+        b.iter(|| perft::run(black_box(4), &mut Board::new()).unwrap())
+    });
 }
 
 criterion_group!(benches, perft_benchmark);

@@ -1,9 +1,8 @@
-use super::super::masks;
 use super::super::BitBoard;
 use super::super::Square;
 
-static mut KING_ATTACKS_TABLE: [BitBoard; 64] = [BitBoard(masks::EMPTY); 64];
-static mut KNIGHT_ATTACKS_TABLE: [BitBoard; 64] = [BitBoard(masks::EMPTY); 64];
+static mut KING_ATTACKS_TABLE: [BitBoard; 64] = [BitBoard::EMPTY; 64];
+static mut KNIGHT_ATTACKS_TABLE: [BitBoard; 64] = [BitBoard::EMPTY; 64];
 
 pub fn init_non_sliding_attacks() {
     generate_king_attacks();
@@ -23,15 +22,15 @@ fn generate_king_attacks() {
         for index in 0..64 {
             let bb = BitBoard::new(Square(index));
 
-            KING_ATTACKS_TABLE[index as usize] = BitBoard(masks::EMPTY)
-                | ((bb & BitBoard(!masks::FILE_A)) >> 1u8)
-                | ((bb & BitBoard(!masks::FILE_A)) >> 9u8)
-                | ((bb & BitBoard(!masks::FILE_A)) << 7u8)
-                | ((bb & BitBoard(!masks::FILE_H)) << 1u8)
-                | ((bb & BitBoard(!masks::FILE_H)) << 9u8)
-                | ((bb & BitBoard(!masks::FILE_H)) >> 7u8)
-                | ((bb & BitBoard(!masks::RANK_1)) >> 8u8)
-                | ((bb & BitBoard(!masks::RANK_8)) << 8u8);
+            KING_ATTACKS_TABLE[index as usize] = BitBoard::EMPTY
+                | ((bb & !BitBoard::FILE_A) >> 1u8)
+                | ((bb & !BitBoard::FILE_A) >> 9u8)
+                | ((bb & !BitBoard::FILE_A) << 7u8)
+                | ((bb & !BitBoard::FILE_H) << 1u8)
+                | ((bb & !BitBoard::FILE_H) << 9u8)
+                | ((bb & !BitBoard::FILE_H) >> 7u8)
+                | ((bb & !BitBoard::RANK_1) >> 8u8)
+                | ((bb & !BitBoard::RANK_8) << 8u8);
         }
     }
 }
@@ -41,15 +40,15 @@ fn generate_knight_attacks() {
         for index in 0..64 {
             let bb = BitBoard::new(Square(index));
 
-            KNIGHT_ATTACKS_TABLE[index as usize] = BitBoard(masks::EMPTY)
-                | ((bb & BitBoard(!masks::FILE_G) & BitBoard(!masks::FILE_H)) >> 6u8)
-                | ((bb & BitBoard(!masks::FILE_G) & BitBoard(!masks::FILE_H)) << 10u8)
-                | ((bb & BitBoard(!masks::FILE_A) & BitBoard(!masks::FILE_B)) >> 10u8)
-                | ((bb & BitBoard(!masks::FILE_A) & BitBoard(!masks::FILE_B)) << 6u8)
-                | ((bb & BitBoard(!masks::FILE_A)) >> 17u8)
-                | ((bb & BitBoard(!masks::FILE_A)) << 15u8)
-                | ((bb & BitBoard(!masks::FILE_H)) >> 15u8)
-                | ((bb & BitBoard(!masks::FILE_H)) << 17u8);
+            KNIGHT_ATTACKS_TABLE[index as usize] = BitBoard::EMPTY
+                | ((bb & !BitBoard::FILE_G & !BitBoard::FILE_H) >> 6u8)
+                | ((bb & !BitBoard::FILE_G & !BitBoard::FILE_H) << 10u8)
+                | ((bb & !BitBoard::FILE_A & !BitBoard::FILE_B) >> 10u8)
+                | ((bb & !BitBoard::FILE_A & !BitBoard::FILE_B) << 6u8)
+                | ((bb & !BitBoard::FILE_A) >> 17u8)
+                | ((bb & !BitBoard::FILE_A) << 15u8)
+                | ((bb & !BitBoard::FILE_H) >> 15u8)
+                | ((bb & !BitBoard::FILE_H) << 17u8);
         }
     }
 }

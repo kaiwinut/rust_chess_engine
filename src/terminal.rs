@@ -38,7 +38,9 @@ fn handle_help() {
     println!("    help                          -  Show list of available commands.\n");
     println!("    magic                         -  Generate magic numbers for rooks & bishops.\n");
     println!("    perft [depth]                 -  Run perft test with [depth].\n");
-    println!("    perft [depth] fen [fen]       -  Run perft test at position [fen] with [depth].\n");
+    println!(
+        "    perft [depth] fen [fen]       -  Run perft test at position [fen] with [depth].\n"
+    );
     println!("    perft [depth] moves [moves]   -  Run perft test at position after moves [moves] with [depth].\n");
     println!("    perftd [depth]                -  Run divided perft test with [depth].\n");
     println!("    perftd [depth] fen [fen]      -  Run divided perft test at position [fen] with [depth].\n");
